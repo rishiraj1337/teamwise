@@ -1,0 +1,74 @@
+name: Incoming Email Ingestion Dispatch
+
+on:
+  repository_dispatch:
+    types:
+      - email-received
+      - incoming-email
+  workflow_dispatch:
+    inputs:
+      test_payload:
+        description: 'Test email payload JSON'
+        required: false
+        default: '{"subject":"Test Email","from":"test@example.com","body":"Test body"}'
+
+permissions:
+  contents: write
+
+jobs:
+  commit-email-payload:
+    name: Commit Email Payload to Repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare incoming emails directory
+        run: |
+          mkdir -p data/incoming-emails
+
+      - name: Save incoming email payload
+        id: save_payload
+        env:
+          CLIENT_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          INPUT_PAYLOAD: ${{ github.event.inputs.test_payload }}
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%d_%H%M%S")
+          RANDOM_HEX=$(head -c 16 /dev/urandom | xxd -p | head -c 8)
+          FILENAME="data/incoming-emails/email_${TIMESTAMP}_${RANDOM_HEX}.json"
+          
+          python3 -c "
+          import os, json
+          raw = os.environ.get('CLIENT_PAYLOAD') or os.environ.get('INPUT_PAYLOAD') or '{}'
+          try:
+              data = json.loads(raw) if isinstance(raw, str) else raw
+          except Exception:
+              data = {'raw_content': raw}
+          if not isinstance(data, dict):
+              data = {'payload': data}
+          data.setdefault('ingested_at', '${TIMESTAMP}')
+          with open('${FILENAME}', 'w', encoding='utf-8') as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+          print('Successfully saved payload to ${FILENAME}')
+          "
+          echo "file_path=${FILENAME}" >> $GITHUB_OUTPUT
+          echo "file_name=$(basename ${FILENAME})" >> $GITHUB_OUTPUT
+
+      - name: Commit and push email file
+        run: |
+          git config user.name "teamwise-email-bot[bot]"
+          git config user.email "teamwise-email-bot@users.noreply.github.com"
+          git add data/incoming-emails/
+          if git diff --staged --quiet; then
+            echo "No new changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(email): ingest incoming email payload ${{ steps.save_payload.outputs.file_name }}"
+          
+          # Retry loop with rebase to handle concurrent commits cleanly
+          for attempt in {1..5}; do
+            git pull --rebase origin main && git push origin main && break || sleep 2
+          done

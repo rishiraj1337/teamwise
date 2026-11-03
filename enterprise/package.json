@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js",
-    "test": "node test/test-pipeline.js && node test/test-settings-cache.js && node test/test-auth.js && node test/test-ai.js && node test/test-db-transactions.js && node test/test-security-and-filter.js && node test/test-playstore-classification.js",
+    "test": "node test/test-pipeline.js && node test/test-settings-cache.js && node test/test-auth.js && node test/test-ai.js && node test/test-db-transactions.js && node test/test-security-and-filter.js && node test/test-playstore-classification.js && node test/test-github-email.js",
     "test:auth": "node test/test-auth.js",
     "test:ai": "node test/test-ai.js",
     "test:db": "node test/test-db-transactions.js",

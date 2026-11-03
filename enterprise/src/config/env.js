@@ -82,6 +82,17 @@ const env = {
   KEYCLOAK_REALM_URL: process.env.KEYCLOAK_REALM_URL || '',
   KEYCLOAK_CLIENT_ID: process.env.KEYCLOAK_CLIENT_ID || '',
 
+  // GitHub Repository Email Ingestion
+  GITHUB_EMAIL_REPO_URL: process.env.GITHUB_EMAIL_REPO_URL || 'https://github.com/rishiraj1337/teamwise',
+  GITHUB_REPO_OWNER: process.env.GITHUB_REPO_OWNER || '',
+  GITHUB_REPO_NAME: process.env.GITHUB_REPO_NAME || '',
+  GITHUB_EMAIL_BRANCH: process.env.GITHUB_EMAIL_BRANCH || 'main',
+  GITHUB_EMAIL_FOLDER_PATH: process.env.GITHUB_EMAIL_FOLDER_PATH || 'data/incoming-emails',
+  GITHUB_PAT: process.env.GITHUB_PAT || '',
+  EMAIL_POLLING_ENABLED: parseBoolean(process.env.EMAIL_POLLING_ENABLED, true),
+  EMAIL_POLL_INTERVAL_SECONDS: parseInteger(process.env.EMAIL_POLL_INTERVAL_SECONDS, 30),
+  EMAIL_MAX_POLL_INTERVAL_SECONDS: parseInteger(process.env.EMAIL_MAX_POLL_INTERVAL_SECONDS, 180),
+
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
   LOG_FILE_PATH: process.env.LOG_FILE_PATH || path.resolve(process.cwd(), 'logs/app.log'),
 };

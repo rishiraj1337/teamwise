@@ -145,13 +145,16 @@ class JobScheduler {
       if (!this.isRunning) return;
       try {
         const config = await settingsRepository.getPollingConfig();
+        let intervalMs = Math.max(1, config.emailIntervalMinutes) * 60 * 1000;
         if (config.emailEnabled) {
           const result = await emailIngestionService.processAllPending();
           if (result.newReviews > 0 || result.failed > 0) {
             logEmailIngest(result.newReviews, result.failed);
           }
+          if (result.nextIntervalMs && typeof result.nextIntervalMs === 'number') {
+            intervalMs = result.nextIntervalMs;
+          }
         }
-        const intervalMs = Math.max(1, config.emailIntervalMinutes) * 60 * 1000;
         this.emailTimer = setTimeout(runCycle, intervalMs);
       } catch (err) {
         logger.warn(`Email ingestion failed: ${err.message}`);

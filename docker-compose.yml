@@ -1,0 +1,73 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: finai_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-teamwisedb}
+      MYSQL_USER: ${MYSQL_USER:-teamwise}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./enterprise/sql/01_init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+      - ./enterprise/sql/02_seed_data.sql:/docker-entrypoint-initdb.d/02_seed_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finai_unified_app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:80"
+      - "${BACKEND_PORT:-8000}:8000"
+      - "${ENTERPRISE_PORT:-3000}:3000"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-teamwisedb}
+      MYSQL_USER: ${MYSQL_USER:-teamwise}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+      REVIEW_MYSQL_HOST: mysql
+      REVIEW_MYSQL_PORT: 3306
+      REVIEW_MYSQL_DATABASE: ${REVIEW_MYSQL_DATABASE:-timePayReview}
+      REVIEW_MYSQL_USER: root
+      REVIEW_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${REVIEW_MYSQL_DATABASE:-timePayReview}
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${REVIEW_MYSQL_DATABASE:-timePayReview}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-a-random-value-@-npstx-organisationwide-aification}
+      JWT_SECRET: ${JWT_SECRET:-timepay-secure-enterprise-jwt-key-change-in-production-2026}
+      ENTERPRISE_API_URL: http://127.0.0.1:3000
+      ENTERPRISE_BRIDGE_EMAIL: ${ENTERPRISE_BRIDGE_EMAIL:-admin@company.com}
+      ENTERPRISE_BRIDGE_PASSWORD: ${ENTERPRISE_BRIDGE_PASSWORD:-AdminPassword123!}
+      ENTERPRISE_SERVICE_EMAIL: ${ENTERPRISE_SERVICE_EMAIL:-admin@company.com}
+      ENTERPRISE_SERVICE_PASSWORD: ${ENTERPRISE_SERVICE_PASSWORD:-AdminPassword123!}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
+      LOG_LEVEL: info
+    volumes:
+      - app_logs:/app/enterprise/logs
+      - app_uploads:/app/enterprise/data/uploads
+
+volumes:
+  mysql_data:
+    name: finai_mysql_data
+  app_logs:
+    name: finai_app_logs
+  app_uploads:
+    name: finai_app_uploads

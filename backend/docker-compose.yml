@@ -1,0 +1,49 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in backend/.env}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in backend/.env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in backend/.env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in backend/.env}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in backend/.env}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in backend/.env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in backend/.env}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in backend/.env}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      REVIEW_MYSQL_DATABASE: ${REVIEW_MYSQL_DATABASE:-timePayReview}
+      REVIEW_MYSQL_USER: ${REVIEW_MYSQL_USER:-root}
+      REVIEW_MYSQL_PASSWORD: ${REVIEW_MYSQL_PASSWORD:-}
+      REVIEW_MYSQL_HOST: ${REVIEW_MYSQL_HOST:-host.docker.internal}
+      REVIEW_MYSQL_PORT: ${REVIEW_MYSQL_PORT:-3306}
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+volumes:
+  mysql_data:
+    name: teamwise_mysql_data
+
+

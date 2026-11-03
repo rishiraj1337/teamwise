@@ -1,0 +1,55 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: review_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: review_db
+      MYSQL_USER: review_user
+      MYSQL_PASSWORD: review_pass
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/01_init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+      - ./sql/02_seed_data.sql:/docker-entrypoint-initdb.d/02_seed_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -proot_pass || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: review_platform_app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: mysql://review_user:review_pass@mysql:3306/review_db
+      JWT_SECRET: ${JWT_SECRET:-enterprise-review-platform-super-secure-key-2026}
+      UPLOADS_DIR: /app/data/uploads
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct}
+      VAULT_ENABLED: ${VAULT_ENABLED:-false}
+      VAULT_ADDR: ${VAULT_ADDR:-http://127.0.0.1:8200}
+      VAULT_TOKEN: ${VAULT_TOKEN:-}
+      KEYCLOAK_ENABLED: ${KEYCLOAK_ENABLED:-false}
+      KEYCLOAK_REALM_URL: ${KEYCLOAK_REALM_URL:-}
+      LOG_LEVEL: info
+    volumes:
+      - ./logs:/app/logs
+      - ./data/uploads:/app/data/uploads
+
+volumes:
+  mysql_data:

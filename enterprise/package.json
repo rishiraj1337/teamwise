@@ -1,0 +1,41 @@
+{
+  "name": "enterprise-unified-review-platform",
+  "version": "2.0.0",
+  "description": "Enterprise Unified Review Platform: Email Ingestion, Play Store Scraper, Chatbot Feedback Intake, RBAC & Minimal UI",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "test": "node test/test-pipeline.js && node test/test-settings-cache.js && node test/test-auth.js && node test/test-ai.js && node test/test-db-transactions.js && node test/test-security-and-filter.js && node test/test-playstore-classification.js",
+    "test:auth": "node test/test-auth.js",
+    "test:ai": "node test/test-ai.js",
+    "test:db": "node test/test-db-transactions.js",
+    "test:security": "node test/test-security-and-filter.js"
+  },
+  "keywords": [
+    "review-automation",
+    "email-ingestion",
+    "playstore-scraper",
+    "chatbot-intake",
+    "rbac",
+    "compliance",
+    "openrouter",
+    "mysql"
+  ],
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.20.0",
+    "bcryptjs": "^2.4.3",
+    "chalk": "^4.1.2",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "google-play-scraper": "^10.1.4",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.24.6",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.2"
+  }
+}

@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "Backend (FastAPI)",
+			"path": "backend"
+		},
+		{
+			"name": "Enterprise (Node.js)",
+			"path": "enterprise"
+		},
+		{
+			"name": "UI (React)",
+			"path": "ui"
+		}
+	],
+	"settings": {}
+}

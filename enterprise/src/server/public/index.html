@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise Unified Review Platform</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <div class="brand">
+      <span>Review Platform</span>
+      <span class="brand-badge">Enterprise</span>
+    </div>
+    <div class="user-status" id="userStatusContainer">
+      <div id="liveStreamBadge" class="badge" style="background-color: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem;">
+        Live Stream Connected
+      </div>
+      <span class="role-pill" id="userRolePill">VIEWER</span>
+      <span id="userEmailSpan" style="font-size: 0.85rem; color: var(--text-secondary);">user@domain.com</span>
+      <button class="btn btn-sm" id="btnNotificationPrompt">Enable Desktop Notifications</button>
+      <button class="btn btn-sm" id="btnLogout">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a class="nav-link active" data-view="dashboard">Dashboard</a>
+      <a class="nav-link" data-view="pipelines">Ingestion Pipelines</a>
+      <a class="nav-link" data-view="chatbot" id="navChatbot">Chatbot Complaints</a>
+      <a class="nav-link" data-view="admin-rbac" id="navRbac">User &amp; RBAC</a>
+      <a class="nav-link" data-view="admin-ai" id="navAi">AI Settings &amp; Enums</a>
+      <a class="nav-link" data-view="admin-polling" id="navPolling">DB &amp; Polling</a>
+      <a class="nav-link" data-view="admin-compliance" id="navCompliance">Compliance &amp; Vault</a>
+      <a class="nav-link" data-view="audit" id="navAudit">Audit Logs</a>
+    </aside>
+
+    <!-- Main Content Views -->
+    <main class="main-content">
+
+      <!-- View 1: Dashboard -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="section-header">
+          <h2 class="section-title">Operational Review Overview</h2>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-sm" id="btnExportJson">Export JSON</button>
+            <button class="btn btn-sm" id="btnExportCsv">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-title">Total Ingested Reviews</div>
+            <div class="metric-value" id="metricTotalReviews">-</div>
+            <div class="metric-sub">Across all active channels</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Average Star Rating</div>
+            <div class="metric-value" id="metricAvgRating">-</div>
+            <div class="metric-sub">Scale 1.0 to 5.0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Past 24 Hours Volume</div>
+            <div class="metric-value" id="metric24hVolume">-</div>
+            <div class="metric-sub">Incoming activity</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Ingestion Engine</div>
+            <div class="metric-value" id="metricEngineStatus" style="font-size: 1.25rem; color: #34d399;">Active</div>
+            <div class="metric-sub">Email + PlayStore + Chatbot</div>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <input type="text" id="filterSearch" placeholder="Search text or TPR ID..." style="width: 220px;">
+          <select id="filterChannel">
+            <option value="">All Channels</option>
+            <option value="Email-SFTP">Email-SFTP</option>
+            <option value="Google Playstore">Google Playstore</option>
+            <option value="Chatbot">Chatbot</option>
+          </select>
+          <select id="filterRating">
+            <option value="">All Star Ratings</option>
+            <option value="5">5 Stars</option>
+            <option value="4">4 Stars</option>
+            <option value="3">3 Stars</option>
+            <option value="2">2 Stars</option>
+            <option value="1">1 Star</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="btnApplyFilter">Apply Filters</button>
+          <button class="btn btn-sm" id="btnResetFilter">Reset</button>
+        </div>
+
+        <!-- Reviews Data Grid -->
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Channel</th>
+                <th>Rating</th>
+                <th>Category</th>
+                <th>Subcategory</th>
+                <th>Summary</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="reviewsTableBody">
+              <tr><td colspan="9" style="text-align: center; padding: 2rem;">Loading review data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);" id="paginationInfo">Showing 0 of 0</span>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-sm" id="btnPrevPage">Previous</button>
+            <button class="btn btn-sm" id="btnNextPage">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 2: Ingestion Pipelines -->
+      <section id="view-pipelines" class="view-section">
+        <div class="section-header">
+          <h2 class="section-title">Ingestion &amp; Parsing Pipelines</h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+          <!-- Email Ingestion Card -->
+          <div class="metric-card">
+            <h3 style="margin-bottom: 0.75rem;">Part 1: Email Ingestion &amp; Parsing</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Monitors SFTP / file upload directories, parses email headers &amp; payloads, performs AI classification, and masks PII.
+            </p>
+            <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+              <div>Status: <strong id="emailStatusText">Monitoring</strong></div>
+              <div>Pending Files: <strong id="emailPendingFiles">0</strong></div>
+              <div>Support Emails Ingested: <strong id="emailSupportCount">0</strong></div>
+              <div>Non-Support Quarantined: <strong id="emailNonSupportCount">0</strong></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnTriggerEmailSync">Run Email Ingestion Now</button>
+          </div>
+
+          <!-- Play Store Scraper Card -->
+          <div class="metric-card">
+            <h3 style="margin-bottom: 0.75rem;">Part 2: Google Play Reviews</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Scraped on startup and polled every N minutes from Google Play Store using pagination checkpoints.
+            </p>
+            <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+              <div>Status: <strong id="playstoreStatusText">Idle</strong></div>
+              <div>Interval: <strong id="playstoreIntervalLabel">1440 minute(s)</strong></div>
+              <div>Last Synced: <strong id="playstoreLastSynced">-</strong></div>
+              <div>Total Synced: <strong id="playstoreTotalCount">0</strong></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnTriggerPlaystoreSync">Run Google Play Sync Now</button>
+          </div>
+
+          <!-- Chatbot Polling Card -->
+          <div class="metric-card">
+            <h3 style="margin-bottom: 0.75rem;">Part 3: Chatbot Feedback Polling</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Periodically polls external chatbot service endpoint to ingest conversational feedback and user satisfaction ratings.
+            </p>
+            <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+              <div>Status: <strong id="chatbotStatusText">Idle</strong></div>
+              <div>Interval: <strong id="chatbotIntervalLabel">60 minute(s)</strong></div>
+              <div>Last Polled: <strong id="chatbotLastPolled">-</strong></div>
+              <div>Total Polled: <strong id="chatbotTotalCount">0</strong></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnTriggerChatbotPoll">Run Chatbot Poll Now</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Chatbot Complaints & Conversations -->
+      <section id="view-chatbot" class="view-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">TimePay Chatbot Complaint Sessions</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Live synchronized chatbot tickets, customer inquiries, and dispute transcripts
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary btn-sm" id="btnTriggerChatbotFetch">Poll TimePay API</button>
+            <button class="btn btn-sm" id="btnRefreshChatbotList">Refresh</button>
+          </div>
+        </div>
+
+        <!-- Chatbot Metrics Strip -->
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem;">
+          <div class="metric-card" style="padding: 1rem;">
+            <div class="metric-title">Total Ingested Tickets</div>
+            <div class="metric-value" id="cbMetricTotal" style="font-size: 1.4rem;">-</div>
+          </div>
+          <div class="metric-card" style="padding: 1rem;">
+            <div class="metric-title">Open Complaints</div>
+            <div class="metric-value" id="cbMetricOpen" style="font-size: 1.4rem; color: #f87171;">-</div>
+          </div>
+          <div class="metric-card" style="padding: 1rem;">
+            <div class="metric-title">Closed / Resolved</div>
+            <div class="metric-value" id="cbMetricClosed" style="font-size: 1.4rem; color: #34d399;">-</div>
+          </div>
+          <div class="metric-card" style="padding: 1rem;">
+            <div class="metric-title">Disputed Txn Amount</div>
+            <div class="metric-value" id="cbMetricAmount" style="font-size: 1.4rem; color: #60a5fa;">-</div>
+          </div>
+        </div>
+
+        <!-- Chatbot Filters Bar -->
+        <div class="filter-bar">
+          <input type="text" id="cbFilterSearch" placeholder="Search Ticket ID, Mob, Name, RRN..." style="width: 240px;">
+          <select id="cbFilterTxnType">
+            <option value="">All Txn Types</option>
+            <option value="BBPS">BBPS</option>
+            <option value="P2M">P2M</option>
+            <option value="P2P">P2P</option>
+          </select>
+          <select id="cbFilterCategory" style="max-width: 200px;">
+            <option value="">All Categories</option>
+          </select>
+          <select id="cbFilterStatus">
+            <option value="">All Statuses</option>
+            <option value="0">0 - Open</option>
+            <option value="1">1 - Closed</option>
+            <option value="2">2 - In Progress</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="btnApplyCbFilter">Apply Filters</button>
+          <button class="btn btn-sm" id="btnResetCbFilter">Reset</button>
+        </div>
+
+        <!-- Master-Detail Chatbot Layout -->
+        <div class="chatbot-layout">
+          <!-- Left: Tickets List Panel -->
+          <div class="ticket-list-panel">
+            <div class="ticket-list-header">
+              <span>Customer Tickets</span>
+              <span id="cbTicketCountLabel" style="font-size: 0.75rem; color: var(--text-muted);">0 tickets</span>
+            </div>
+            <div class="ticket-list-scroll" id="chatbotTicketListContainer">
+              <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading tickets...</div>
+            </div>
+            <!-- Pagination Controls -->
+            <div style="padding: 0.5rem 0.75rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <span id="cbPaginationLabel" style="font-size: 0.72rem; color: var(--text-muted);">Page 1</span>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="btn btn-sm" id="btnCbPrevPage" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">&lt;</button>
+                <button class="btn btn-sm" id="btnCbNextPage" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">&gt;</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Chat Conversation & Details Viewer -->
+          <div class="chat-viewer-panel" id="chatbotViewerPanel">
+            <div class="chat-empty-state" id="cbEmptyState">
+              <div style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-muted); font-weight: 700;">[CHAT]</div>
+              <h3 style="margin-bottom: 0.5rem; color: var(--text-primary);">No Ticket Selected</h3>
+              <p style="font-size: 0.85rem; max-width: 320px;">
+                Select a complaint from the ticket list on the left to inspect the customer profile, transaction metadata, and interactive conversation transcript.
+              </p>
+            </div>
+
+            <!-- Active Ticket Container (Hidden by default) -->
+            <div id="cbActiveTicketContainer" style="display: none; height: 100%; flex-direction: column;">
+              <!-- Header Bar -->
+              <div class="chat-header-bar">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span id="cbViewTicketId" style="font-weight: 700; font-size: 1.1rem; color: #60a5fa;">-</span>
+                    <span id="cbViewStatusBadge" class="badge">-</span>
+                    <span id="cbViewRatingBadge" class="badge" style="display: none;">-</span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                    <span id="cbViewCategoryName">-</span> &bull; <span id="cbViewTicketCat">-</span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button class="btn btn-sm" id="btnViewInReviews">View In Review DB</button>
+                </div>
+              </div>
+
+              <!-- Transaction Metadata Strip -->
+              <div class="txn-details-strip">
+                <div>
+                  <div class="txn-stat-label">Customer Name</div>
+                  <div class="txn-stat-val" id="cbTxnPayerName">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Mobile Number</div>
+                  <div class="txn-stat-val" id="cbTxnMobNo">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Payer VPA</div>
+                  <div class="txn-stat-val" id="cbTxnPayerVpa">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Amount &bull; Type</div>
+                  <div class="txn-stat-val" id="cbTxnAmountType" style="color: #60a5fa;">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Bank / Beneficiary</div>
+                  <div class="txn-stat-val" id="cbTxnBenName">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Txn ID &bull; RRN</div>
+                  <div class="txn-stat-val" id="cbTxnIdRrn" style="font-family: monospace; font-size: 0.75rem;">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Device &bull; App Version</div>
+                  <div class="txn-stat-val" id="cbTxnDeviceApp">-</div>
+                </div>
+                <div>
+                  <div class="txn-stat-label">Txn / Final Status</div>
+                  <div class="txn-stat-val" id="cbTxnStatusBadge">-</div>
+                </div>
+              </div>
+
+              <!-- Chat Messages Container -->
+              <div class="chat-messages-container" id="cbMessagesContainer"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 3: User & RBAC Management -->
+      <section id="view-admin-rbac" class="view-section">
+        <div class="section-header">
+          <h2 class="section-title">User &amp; Role-Based Access Control (RBAC)</h2>
+          <button class="btn btn-primary btn-sm" id="btnOpenInviteModal">Invite New User</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="7">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin: 2rem 0 1rem 0; font-size: 1.1rem;">Pending Invitations</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Token</th>
+                <th>Status</th>
+                <th>Expires At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invitesTableBody">
+              <tr><td colspan="6">No pending invitations</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View 4: AI Settings & Dynamic Enums -->
+      <section id="view-admin-ai" class="view-section">
+        <div class="section-header">
+          <h2 class="section-title">AI Engine Configuration &amp; Schema Enums</h2>
+          <button class="btn btn-primary btn-sm" id="btnSaveAiSettings">Save AI Configuration</button>
+        </div>
+
+        <div style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--card-radius); padding: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">AI Processing Global Switch</label>
+              <select id="aiEnabledSelect" class="form-control">
+                <option value="true">Enabled (Use OpenRouter LLM)</option>
+                <option value="false">Disabled (Zero-Cost Local Heuristic Fallback)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Active Provider</label>
+              <select id="aiProviderSelect" class="form-control">
+                <option value="openrouter">OpenRouter API</option>
+                <option value="heuristic">Internal Heuristic Engine</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Model Identifier</label>
+              <input type="text" id="aiModelInput" class="form-control" value="meta-llama/llama-3.3-70b-instruct">
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input type="password" id="aiApiKeyInput" class="form-control" placeholder="sk-or-v1-...">
+            </div>
+          </div>
+
+          <!-- Per-Source AI Configuration -->
+          <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color);">
+            <label class="form-label" style="font-size: 0.95rem; margin-bottom: 0.25rem;">Intake Source AI Configuration</label>
+            <p class="form-help" style="margin-bottom: 1rem;">Configure individually which intake sources utilize AI extraction vs standard direct mapping.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Email Ingestion</label>
+                <select id="aiSourceEmailSelect" class="form-control">
+                  <option value="true">Use AI Extraction</option>
+                  <option value="false">Map Normally (Heuristic)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Google Play Reviews</label>
+                <select id="aiSourcePlaystoreSelect" class="form-control">
+                  <option value="false">Map Normally (Direct Scraper Fields)</option>
+                  <option value="true">Use AI Extraction (Enrich Category)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Chatbot Complaints</label>
+                <select id="aiSourceChatbotSelect" class="form-control">
+                  <option value="false">Map Normally (Ticket Fields &amp; Rating)</option>
+                  <option value="true">Use AI Extraction (Analyze Transcript)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Category Enums -->
+          <div style="margin-top: 1.5rem;">
+            <label class="form-label">Configurable Category Enums</label>
+            <p class="form-help">Allowed classification categories enforced across all ingestion pipelines.</p>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="text" id="newCategoryInput" placeholder="Add category (e.g. Identity Verification)..." style="flex: 1;">
+              <button class="btn btn-sm" id="btnAddCategory">Add Category Enum</button>
+            </div>
+            <div class="tag-list" id="categoryTagsContainer"></div>
+          </div>
+
+          <!-- Dynamic Subcategory Enums -->
+          <div style="margin-top: 1.5rem;">
+            <label class="form-label">Configurable Subcategories (JSON Schema Mapping)</label>
+            <p class="form-help">Mapping of each Category to its allowed subcategories.</p>
+            <textarea id="subcategoriesJsonTextarea" rows="6" class="form-control" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 5: DB & Polling Settings -->
+      <section id="view-admin-polling" class="view-section">
+        <div class="section-header">
+          <h2 class="section-title">Database &amp; Polling Scheduling</h2>
+          <button class="btn btn-primary btn-sm" id="btnSavePollingSettings">Save Polling Settings</button>
+        </div>
+
+        <div style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--card-radius); padding: 1.5rem;">
+          <h3 style="margin-bottom: 1rem; font-size: 1rem;">Email Polling Configuration</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+              <label class="form-label">Email Polling Active</label>
+              <select id="pollEmailEnabled" class="form-control">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Interval (Minutes)</label>
+              <input type="number" id="pollEmailInterval" class="form-control" min="1" step="1" value="1">
+            </div>
+          </div>
+
+          <h3 style="margin-bottom: 1rem; font-size: 1rem;">Google Play Store Polling Configuration</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+              <label class="form-label">Play Store Sync Active</label>
+              <select id="pollPlaystoreEnabled" class="form-control">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sync Interval (Minutes)</label>
+              <input type="number" id="pollPlaystoreIntervalMinutes" class="form-control" min="1" step="1" value="1440">
+              <p class="form-help">Scrapes on start, then polls every N minutes (1440 = 1 day).</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scrape on Application Startup</label>
+              <select id="pollPlaystoreScrapeOnStart" class="form-control">
+                <option value="true">Enabled (Scrape immediately on start)</option>
+                <option value="false">Disabled (Wait for first interval)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">App Package Name</label>
+              <input type="text" id="pollPlaystorePackage" class="form-control" value="com.npst.timepay.society">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scraper Country Code</label>
+              <input type="text" id="pollPlaystoreCountry" class="form-control" value="in">
+            </div>
+          </div>
+
+          <h3 style="margin-bottom: 1rem; font-size: 1rem;">Chatbot Feedback Polling Configuration</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Chatbot Polling Active</label>
+              <select id="pollChatbotEnabled" class="form-control">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Poll Interval (Minutes)</label>
+              <input type="number" id="pollChatbotIntervalMinutes" class="form-control" min="1" step="1" value="60">
+              <p class="form-help">Polls external chatbot endpoint every N minutes (e.g. 60 = 1 hour).</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chatbot Service API URL</label>
+              <input type="text" id="pollChatbotApiUrl" class="form-control" value="http://127.0.0.1:4000/api/feedback">
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key / Bearer Token</label>
+              <input type="password" id="pollChatbotApiKey" class="form-control" placeholder="Optional service token">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Poll on Application Startup</label>
+              <select id="pollChatbotPollOnStart" class="form-control">
+                <option value="true">Enabled (Poll immediately on start)</option>
+                <option value="false">Disabled (Wait for first interval)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 6: Compliance & HashiCorp Vault / Keycloak -->
+      <section id="view-admin-compliance" class="view-section">
+        <div class="section-header">
+          <h2 class="section-title">Compliance, Security &amp; Vault Integration</h2>
+          <button class="btn btn-primary btn-sm" id="btnSaveComplianceSettings">Save Security Settings</button>
+        </div>
+
+        <div style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--card-radius); padding: 1.5rem; margin-bottom: 1.5rem;">
+          <h3 style="margin-bottom: 1rem; font-size: 1rem;">Data Privacy &amp; Masking (GDPR / SOC2)</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+              <label class="form-label">PII Data Masking in Logs &amp; Storage</label>
+              <select id="compPiiMasking" class="form-control">
+                <option value="true">Enabled (Auto-mask emails, phones, card numbers)</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data Retention (Days)</label>
+              <input type="number" id="compRetentionDays" class="form-control" value="365">
+            </div>
+          </div>
+
+          <h3 style="margin-bottom: 1rem; font-size: 1rem;">Optional HashiCorp Vault Integration</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label class="form-label">HashiCorp Vault Enabled</label>
+              <select id="compVaultEnabled" class="form-control">
+                <option value="false">Disabled (Use Environment / DB Secrets)</option>
+                <option value="true">Enabled</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vault Address</label>
+              <input type="text" id="compVaultAddress" class="form-control" value="http://127.0.0.1:8200">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vault Secret Path</label>
+              <input type="text" id="compVaultPath" class="form-control" value="secret/data/automation">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vault Token</label>
+              <input type="password" id="compVaultToken" class="form-control" placeholder="hvs....">
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btnTestVault">Test Vault Connection</button>
+          <span id="vaultTestStatus" style="font-size: 0.85rem; margin-left: 0.75rem;"></span>
+
+          <h3 style="margin: 1.5rem 0 1rem 0; font-size: 1rem;">Optional Keycloak SSO Integration</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Keycloak Federated Auth</label>
+              <select id="compKeycloakEnabled" class="form-control">
+                <option value="false">Disabled (Native Built-in Auth)</option>
+                <option value="true">Enabled (Verify Keycloak OIDC Tokens)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Keycloak Realm URL</label>
+              <input type="text" id="compKeycloakRealm" class="form-control" placeholder="https://keycloak.company.com/auth/realms/timepay">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 7: Audit Logs -->
+      <section id="view-audit" class="view-section">
+        <div class="section-header">
+          <h2 class="section-title">Compliance Audit Trail</h2>
+          <button class="btn btn-sm" id="btnRefreshAudit">Refresh Logs</button>
+        </div>
+
+        <div class="filter-bar" style="margin-bottom: 1rem;">
+          <input type="text" id="filterAuditAction" placeholder="Filter by action (e.g. POLL, LOGIN)..." style="width: 250px;">
+          <input type="text" id="filterAuditResource" placeholder="Filter by resource..." style="width: 200px;">
+          <button class="btn btn-primary btn-sm" id="btnApplyAuditFilter">Filter Audit</button>
+          <button class="btn btn-sm" id="btnResetAuditFilter">Reset</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Resource</th>
+                <th>Details</th>
+                <th>IP Address</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <tr><td colspan="7">Loading audit trail...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: Sign In -->
+  <div class="modal-overlay" id="modalSignIn">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Enterprise Sign In</h3>
+      </div>
+      <form id="formSignIn">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="signInEmail" class="form-control" placeholder="name@company.com" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="signInPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+        </div>
+        <div id="signInError" style="color: var(--danger-color); font-size: 0.85rem; margin-bottom: 0.75rem; display: none;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: User Invite -->
+  <div class="modal-overlay" id="modalInvite">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Invite Collaborator</h3>
+        <button class="btn btn-sm" id="btnCloseInviteModal">Close</button>
+      </div>
+      <form id="formInvite">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="inviteEmail" class="form-control" placeholder="colleague@company.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assigned RBAC Role</label>
+          <select id="inviteRole" class="form-control">
+            <option value="VIEWER">VIEWER (Read-only reviews)</option>
+            <option value="ANALYST">ANALYST (Read &amp; Export)</option>
+            <option value="MANAGER">MANAGER (Review remediation &amp; pipeline)</option>
+            <option value="ADMIN">ADMIN (Full privileges)</option>
+          </select>
+        </div>
+        <div id="inviteResultLink" style="font-size: 0.8rem; word-break: break-all; margin-bottom: 0.75rem; color: #60a5fa;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Invitation Link</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Accept Invite -->
+  <div class="modal-overlay" id="modalAcceptInvite">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Accept Platform Invitation</h3>
+      </div>
+      <form id="formAcceptInvite">
+        <div class="form-group">
+          <label class="form-label">Your Full Name</label>
+          <input type="text" id="acceptName" class="form-control" placeholder="Alex Taylor" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Choose Strong Password</label>
+          <input type="password" id="acceptPassword" class="form-control" placeholder="Min 8 characters" required>
+        </div>
+        <div id="acceptError" style="color: var(--danger-color); font-size: 0.85rem; margin-bottom: 0.75rem; display: none;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Register Account</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

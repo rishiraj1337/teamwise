@@ -1,6 +1,16 @@
 -- Schema definition for Enterprise Unified Review Platform
 -- Compliance and Security: UTF8MB4, strict constraints, audit trails
 
+CREATE DATABASE IF NOT EXISTS `timePayReview` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS `teamwisedb` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- Grant permissions for teamwise application user
+GRANT ALL PRIVILEGES ON `timePayReview`.* TO 'teamwise'@'%';
+GRANT ALL PRIVILEGES ON `teamwisedb`.* TO 'teamwise'@'%';
+FLUSH PRIVILEGES;
+
+USE `timePayReview`;
+
 CREATE TABLE IF NOT EXISTS `review` (
   `channel` VARCHAR(100) NOT NULL DEFAULT 'N/A',
   `unique_id` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '',

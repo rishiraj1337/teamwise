@@ -1,3 +1,6 @@
+from contextlib import asynccontextmanager
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +13,23 @@ from app.api.router import router
 from app.core.config import get_settings
 from app.core.security_headers import SecurityHeadersMiddleware
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        from app.db.session import SessionLocal
+        from app.db.review_session import SessionLocalReview
+        from app.services.seed import seed_rbac_if_empty
+
+        with SessionLocal() as db:
+            seed_rbac_if_empty(db)
+    except Exception as exc:
+        logger.warning("Database auto-seed check skipped or deferred: %s", exc)
+    yield
+
 
 fastapi_kwargs: dict = {
     "title": "TeamWise Authentication API",
@@ -19,6 +38,7 @@ fastapi_kwargs: dict = {
         "Unified review platform endpoints under /api align with Enterprise API v2.1."
     ),
     "version": "2.1.0",
+    "lifespan": lifespan,
 }
 if settings.is_production:
     fastapi_kwargs.update(docs_url=None, redoc_url=None, openapi_url=None)

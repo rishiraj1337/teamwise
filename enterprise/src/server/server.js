@@ -40,9 +40,10 @@ function createServer() {
   app.use(express.static(publicDir));
 
   // Health check endpoint
-  app.get('/health', (req, res) => {
+  app.get(['/health', '/api/health'], (req, res) => {
     res.json({
       status: 'UP',
+      service: 'enterprise-backend',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     });

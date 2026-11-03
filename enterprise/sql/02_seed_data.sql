@@ -2,6 +2,8 @@
 -- Password for default admin: AdminPassword123!
 -- Bcrypt hash generated with cost 10: $2a$10$w8T.NtrZ15u4V5iEwF25..e25K5QY7g0P0s2rS4z00lA.HsmYyZeq (or seeded via application boot)
 
+USE `timePayReview`;
+
 INSERT INTO `system_settings` (`setting_key`, `setting_value`, `category`, `description`) VALUES
 ('ai_enabled', 'true', 'ai', 'Global switch to enable or disable AI processing'),
 ('ai_provider', 'openrouter', 'ai', 'Active AI provider: openrouter or heuristic'),

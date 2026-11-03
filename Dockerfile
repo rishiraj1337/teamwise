@@ -46,7 +46,8 @@ COPY enterprise/ /app/enterprise/
 RUN mkdir -p /app/enterprise/logs \
     /app/enterprise/data/uploads/processed \
     /app/enterprise/data/uploads/failed \
-    /app/enterprise/data/uploads/non-support
+    /app/enterprise/data/uploads/non-support \
+    /app/data/incoming-emails
 
 # 3. Setup UI Static Assets
 COPY --from=ui-builder /app/ui/dist /var/www/html

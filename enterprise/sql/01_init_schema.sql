@@ -11,6 +11,41 @@ FLUSH PRIVILEGES;
 
 USE `timePayReview`;
 
+CREATE TABLE IF NOT EXISTS `review_priority` (
+  `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(50) NOT NULL UNIQUE,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `review_status` (
+  `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(50) NOT NULL UNIQUE,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `sort_order` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `review_category` (
+  `id` SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL UNIQUE,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `review_subcategory` (
+  `id` SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `category_id` SMALLINT UNSIGNED NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY `uq_cat_subcat` (`category_id`, `name`),
+  KEY `idx_subcat_category` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `review` (
   `channel` VARCHAR(100) NOT NULL DEFAULT 'N/A',
   `unique_id` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '',
@@ -29,7 +64,10 @@ CREATE TABLE IF NOT EXISTS `review` (
   `resolution_date` DATE NULL,
   `developer_reply_time` DATETIME(3) NULL,
   `developer_reply_text` VARCHAR(1000) NOT NULL DEFAULT 'N/A',
-  `review_link` VARCHAR(255) NOT NULL DEFAULT 'N/A',
+  `review_link` VARCHAR(512) NOT NULL DEFAULT 'N/A',
+  `priority_id` TINYINT UNSIGNED NULL,
+  `category_id` SMALLINT UNSIGNED NULL,
+  `subcategory_id` SMALLINT UNSIGNED NULL,
   `created_at` DATETIME(3) NOT NULL,
   `updated_at` DATETIME(3) NOT NULL,
   PRIMARY KEY (`unique_id`),
@@ -37,6 +75,9 @@ CREATE TABLE IF NOT EXISTS `review` (
   KEY `idx_review_channel` (`channel`),
   KEY `idx_review_category` (`category`),
   KEY `idx_review_ratings` (`star_ratings`),
+  KEY `idx_review_priority_id` (`priority_id`),
+  KEY `idx_review_category_id` (`category_id`),
+  KEY `idx_review_subcategory_id` (`subcategory_id`),
   CONSTRAINT `chk_star_ratings` CHECK (`star_ratings` BETWEEN 1 AND 5)
 ) ENGINE=InnoDB
 DEFAULT CHARACTER SET utf8mb4
@@ -71,8 +112,8 @@ CREATE TABLE IF NOT EXISTS `chatbot_sessions` (
   `category_name` VARCHAR(100) NOT NULL DEFAULT 'N/A',
   `ticket_category` VARCHAR(100) NOT NULL DEFAULT 'N/A',
   `status` TINYINT NOT NULL DEFAULT 0,
-  `rating_app` VARCHAR(10) NULL,
-  `feedback_rate` VARCHAR(50) NULL,
+  `rating_app` VARCHAR(50) NULL,
+  `feedback_rate` TEXT NULL,
   `payer_name` VARCHAR(150) NOT NULL DEFAULT 'N/A',
   `mob_no` VARCHAR(20) NOT NULL DEFAULT 'N/A',
   `amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,

@@ -21,7 +21,6 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     try:
         from app.db.session import SessionLocal
-        from app.db.review_session import SessionLocalReview
         from app.services.seed import seed_rbac_if_empty
 
         with SessionLocal() as db:

@@ -10,13 +10,30 @@ function reviewDateFilter(startDate, endDate) {
   const clauses = [];
   const params = [];
   if (startDate) {
-    clauses.push('review_timestamp >= ?');
-    params.push(new Date(startDate));
+    const startStr = typeof startDate === 'string' ? startDate.trim() : '';
+    let start;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(startStr)) {
+      start = new Date(`${startStr}T00:00:00`);
+    } else {
+      start = new Date(startDate);
+    }
+    if (!Number.isNaN(start.getTime())) {
+      clauses.push('review_timestamp >= ?');
+      params.push(start);
+    }
   }
   if (endDate) {
-    const end = new Date(endDate);
+    const endStr = typeof endDate === 'string' ? endDate.trim() : '';
+    let end;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(endStr)) {
+      end = new Date(`${endStr}T23:59:59.999`);
+    } else {
+      end = new Date(endDate);
+      if (end.getHours() === 0 && end.getMinutes() === 0 && end.getSeconds() === 0) {
+        end.setHours(23, 59, 59, 999);
+      }
+    }
     if (!Number.isNaN(end.getTime())) {
-      end.setHours(23, 59, 59, 999);
       clauses.push('review_timestamp <= ?');
       params.push(end);
     }

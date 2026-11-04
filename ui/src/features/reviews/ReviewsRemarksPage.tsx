@@ -84,20 +84,29 @@ export function ReviewsRemarksPage({
 
   // Compute start_date and end_date from timePreset
   const { computedStartDate, computedEndDate } = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
+    const formatYmd = (d: Date) => {
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const now = new Date()
+    const today = formatYmd(now)
+
     if (timePreset === 'today') {
       return { computedStartDate: today, computedEndDate: today }
     }
     if (timePreset === 'week') {
-      const d = new Date()
+      const d = new Date(now)
       const day = d.getDay()
       const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-      const monday = new Date(d.setDate(diff)).toISOString().slice(0, 10)
+      d.setDate(diff)
+      const monday = formatYmd(d)
       return { computedStartDate: monday, computedEndDate: today }
     }
     if (timePreset === 'month') {
-      const d = new Date()
-      const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
+      const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
       return { computedStartDate: firstDay, computedEndDate: today }
     }
     if (timePreset === 'custom') {

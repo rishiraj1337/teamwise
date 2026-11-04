@@ -131,12 +131,15 @@ class SettingsRepository {
     const categories = settingValue(all, 'ai_categories', DEFAULT_CATEGORIES);
     const subcategories = settingValue(all, 'ai_subcategories', DEFAULT_SUBCATEGORIES);
 
+    const provider = settingValue(all, 'ai_provider', 'openrouter');
+    const isAiOpenAi = provider === 'openai';
+
     return {
       enabled: settingValue(all, 'ai_enabled', true),
-      provider: settingValue(all, 'ai_provider', 'openrouter'),
-      model: settingValue(all, 'ai_model', '') || env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct',
-      apiKey: settingValue(all, 'ai_api_key', '') || env.OPENROUTER_API_KEY || '',
-      baseUrl: settingValue(all, 'ai_base_url', '') || env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+      provider,
+      model: settingValue(all, 'ai_model', '') || (isAiOpenAi ? (env.OPENAI_MODEL || 'gpt-4o') : (env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct')),
+      apiKey: settingValue(all, 'ai_api_key', '') || (isAiOpenAi ? (env.OPENAI_API_KEY || '') : (env.OPENROUTER_API_KEY || '')),
+      baseUrl: settingValue(all, 'ai_base_url', '') || (isAiOpenAi ? (env.OPENAI_BASE_URL || 'https://api.openai.com/v1') : (env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1')),
       timeoutMs: settingValue(all, 'ai_timeout_ms', null) || env.OPENROUTER_TIMEOUT_MS || 30000,
       categories: Array.isArray(categories) ? categories : DEFAULT_CATEGORIES,
       subcategories: typeof subcategories === 'object' ? subcategories : DEFAULT_SUBCATEGORIES,

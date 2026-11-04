@@ -27,11 +27,24 @@ class AiService {
     const systemPrompt = buildExtractionSystemPrompt(categories, subcategories);
     const userPrompt = buildUserPrompt(emailData);
 
+    const isAiOpenAi = provider === 'openai';
+    const defaultBaseUrl = isAiOpenAi ? 'https://api.openai.com/v1' : 'https://openrouter.ai/api/v1';
+    const defaultModel = isAiOpenAi ? 'gpt-4o' : 'meta-llama/llama-3.3-70b-instruct';
+
     try {
+      const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      };
+      if (!isAiOpenAi) {
+        headers['HTTP-Referer'] = 'https://automation.internal';
+        headers['X-Title'] = 'Enterprise-Review-Automation';
+      }
+
       const response = await axios.post(
-        `${(config.baseUrl || 'https://openrouter.ai/api/v1').replace(/\/+$/, '')}/chat/completions`,
+        `${(config.baseUrl || defaultBaseUrl).replace(/\/+$/, '')}/chat/completions`,
         {
-          model: config.model || 'meta-llama/llama-3.3-70b-instruct',
+          model: config.model || defaultModel,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -40,12 +53,7 @@ class AiService {
           response_format: { type: 'json_object' },
         },
         {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://automation.internal',
-            'X-Title': 'Enterprise-Review-Automation',
-          },
+          headers,
           timeout: Number(config.timeoutMs) || 30000,
         }
       );

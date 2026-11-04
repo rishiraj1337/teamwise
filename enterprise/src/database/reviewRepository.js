@@ -190,12 +190,33 @@ class ReviewRepository {
       params.push(term, term, term, term, term, term, term);
     }
     if (startDate) {
-      conditions.push('review_timestamp >= ?');
-      params.push(new Date(startDate));
+      const startStr = typeof startDate === 'string' ? startDate.trim() : '';
+      let start;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(startStr)) {
+        start = new Date(`${startStr}T00:00:00`);
+      } else {
+        start = new Date(startDate);
+      }
+      if (!Number.isNaN(start.getTime())) {
+        conditions.push('review_timestamp >= ?');
+        params.push(start);
+      }
     }
     if (endDate) {
-      conditions.push('review_timestamp <= ?');
-      params.push(new Date(endDate));
+      const endStr = typeof endDate === 'string' ? endDate.trim() : '';
+      let end;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(endStr)) {
+        end = new Date(`${endStr}T23:59:59.999`);
+      } else {
+        end = new Date(endDate);
+        if (end.getHours() === 0 && end.getMinutes() === 0 && end.getSeconds() === 0) {
+          end.setHours(23, 59, 59, 999);
+        }
+      }
+      if (!Number.isNaN(end.getTime())) {
+        conditions.push('review_timestamp <= ?');
+        params.push(end);
+      }
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

@@ -198,6 +198,11 @@ def platform_list_reviews(
     status: str | None = Query(default=None, max_length=50),
 ) -> PlatformReviewListResponse:
     offset = (page - 1) * limit
+    start_dt = _parse_iso_datetime(startDate)
+    end_dt = _parse_iso_datetime(endDate)
+    if end_dt is not None and len((endDate or "").strip()) == 10:
+        end_dt = end_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+
     result = list_reviews(
         review_db,
         limit=limit,
@@ -209,8 +214,8 @@ def platform_list_reviews(
         min_rating=starRating,
         max_rating=starRating,
         channel=channel,
-        start_date=_parse_iso_datetime(startDate),
-        end_date=_parse_iso_datetime(endDate),
+        start_date=start_dt,
+        end_date=end_dt,
         sort_by=sortBy,
         sort_order=sortOrder,
     )

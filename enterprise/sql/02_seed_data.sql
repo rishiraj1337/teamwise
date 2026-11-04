@@ -109,7 +109,7 @@ ON DUPLICATE KEY UPDATE `is_active` = VALUES(`is_active`);
 
 INSERT INTO `system_settings` (`setting_key`, `setting_value`, `category`, `description`) VALUES
 ('ai_enabled', 'true', 'ai', 'Global switch to enable or disable AI processing'),
-('ai_provider', 'openrouter', 'ai', 'Active AI provider: openrouter or heuristic'),
+('ai_provider', 'openrouter', 'ai', 'Active AI provider: openai, openrouter, or heuristic'),
 ('ai_model', 'meta-llama/llama-3.3-70b-instruct', 'ai', 'Model identifier for OpenRouter or custom LLM'),
 ('ai_api_key', '', 'ai', 'API Key for AI provider'),
 ('ai_base_url', 'https://openrouter.ai/api/v1', 'ai', 'Base URL for AI endpoint'),

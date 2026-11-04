@@ -4,42 +4,13 @@ import { downloadCsv } from '../../utils/csv'
 import { fetchReviewAnalytics, logReviewCsvExport, type ReviewAnalyticsResponse } from '../../api/reviews'
 import { ApiError } from '../../api/client'
 import { SimpleBarChart } from '../../components/charts/SimpleBarChart'
-import { SimplePieChart, SENTIMENT_PIE_COLORS, TICKET_PIE_COLORS } from '../../components/charts/SimplePieChart'
+import { SimplePieChart, SENTIMENT_PIE_COLORS } from '../../components/charts/SimplePieChart'
 import {
   mapReportSliceToPreset,
   sortPriorityBreakdown,
   type ReportDrillSource,
   type ReviewListPreset,
 } from './reviewReportNavigation'
-
-function TicketChart({
-  data,
-  loading,
-  onSliceClick,
-}: {
-  data: ReviewAnalyticsResponse['ticket_breakdown']
-  loading: boolean
-  onSliceClick?: (label: string) => void
-}) {
-  const total = data.reduce((sum, slice) => sum + slice.value, 0)
-  if (loading) return <div className="chart-empty">Loading…</div>
-  if (total === 0) {
-    return (
-      <div className="chart-empty chart-empty-tickets">
-        <b>Open: 0 · Resolved: 0</b>
-        <span>No ticket data yet.</span>
-      </div>
-    )
-  }
-  return (
-    <SimplePieChart
-      data={data}
-      compact
-      labelColors={TICKET_PIE_COLORS}
-      onSliceClick={(slice) => onSliceClick?.(slice.label)}
-    />
-  )
-}
 
 type TimePreset = 'all' | 'today' | 'week' | 'month' | 'custom'
 
@@ -197,7 +168,12 @@ export function ReviewReportCards({
     <>
     <section className="reviews-chart-grid dashboard-reports-row" aria-label="Review summary reports">
       <article className="panel review-chart-card">
-        <div className="panel-heading"><div><h2>Category-wise</h2></div></div>
+        <div className="panel-heading">
+          <div>
+            <span className="section-kicker">CLASSIFICATION</span>
+            <h2>Category Distribution</h2>
+          </div>
+        </div>
         <div className="review-chart-card__body">
           {loading ? <div className="chart-empty">Loading…</div> : (
             <SimplePieChart
@@ -209,8 +185,14 @@ export function ReviewReportCards({
           )}
         </div>
       </article>
+
       <article className="panel review-chart-card">
-        <div className="panel-heading"><div><h2>Ratings</h2></div></div>
+        <div className="panel-heading">
+          <div>
+            <span className="section-kicker">SENTIMENT</span>
+            <h2>Customer Ratings</h2>
+          </div>
+        </div>
         <div className="review-chart-card__body">
           {loading ? <div className="chart-empty">Loading…</div> : (
             <SimplePieChart
@@ -223,18 +205,14 @@ export function ReviewReportCards({
           )}
         </div>
       </article>
+
       <article className="panel review-chart-card">
-        <div className="panel-heading"><div><h2>Tickets (Open Project)</h2></div></div>
-        <div className="review-chart-card__body">
-          <TicketChart
-            data={analytics?.ticket_breakdown ?? []}
-            loading={loading}
-            onSliceClick={(label) => drill('ticket', label)}
-          />
+        <div className="panel-heading">
+          <div>
+            <span className="section-kicker">SEVERITY</span>
+            <h2>Priority Breakdown</h2>
+          </div>
         </div>
-      </article>
-      <article className="panel review-chart-card">
-        <div className="panel-heading"><div><h2>Priority</h2></div></div>
         <div className="review-chart-card__body review-chart-card__body--bars">
           {loading ? <div className="chart-empty">Loading…</div> : (
             <SimpleBarChart
@@ -247,6 +225,7 @@ export function ReviewReportCards({
         </div>
       </article>
     </section>
+
     <CategoryReviewBreakdown
       analytics={analytics}
       loading={loading}
@@ -304,7 +283,7 @@ function CategoryReviewBreakdown({
   return (
     <section className="panel category-breakdown-panel">
       <div className="category-breakdown-heading">
-        <div><span className="section-kicker">REVIEW DISTRIBUTION</span><h2>Category breakdown</h2></div>
+        <div><span className="section-kicker">REVIEW DISTRIBUTION</span><h2>Category Breakdown</h2></div>
         <button type="button" className="secondary-button category-download-button" onClick={downloadBreakdown} disabled={loading || categories.length === 0}>
           <Icon name="arrow" size={14} /> Download
         </button>
@@ -315,6 +294,7 @@ function CategoryReviewBreakdown({
         <div className="category-breakdown-list">
           {categories.map((item) => {
             const isExpanded = expanded.has(item.category)
+            const percent = total > 0 ? Math.round((item.count / total) * 100) : 0
             return <div className="category-breakdown-item" key={item.category}>
               <div className={`category-breakdown-row ${isExpanded ? 'expanded' : ''}`}>
                 <button
@@ -331,25 +311,43 @@ function CategoryReviewBreakdown({
                   className="category-breakdown-main"
                   onClick={() => onDrillDown(mapReportSliceToPreset('category', item.category))}
                 >
-                  <b>{item.category}</b>
-                  <span className="category-breakdown-count">{item.count}</span>
+                  <div className="category-breakdown-info">
+                    <b>{item.category}</b>
+                    <div className="category-progress-track">
+                      <div className="category-progress-fill" style={{ width: `${percent}%` }} />
+                    </div>
+                  </div>
+                  <div className="category-breakdown-metrics">
+                    <span className="category-breakdown-percent">{percent}%</span>
+                    <span className="category-breakdown-count">{item.count}</span>
+                  </div>
                 </button>
               </div>
               {isExpanded && <div className="subcategory-breakdown-list">
-                {item.subcategories.map((subcategory) => (
-                  <button
-                    type="button"
-                    className="subcategory-breakdown-row subcategory-breakdown-row--link"
-                    key={subcategory.label}
-                    onClick={() => onDrillDown(mapReportSliceToPreset('category', item.category))}
-                  >
-                    <span>{subcategory.label}</span><b>{subcategory.value}</b>
-                  </button>
-                ))}
+                {item.subcategories.map((subcategory) => {
+                  const subPercent = item.count > 0 ? Math.round((subcategory.value / item.count) * 100) : 0
+                  return (
+                    <button
+                      type="button"
+                      className="subcategory-breakdown-row subcategory-breakdown-row--link"
+                      key={subcategory.label}
+                      onClick={() => onDrillDown(mapReportSliceToPreset('category', item.category))}
+                    >
+                      <span className="subcategory-name">{subcategory.label}</span>
+                      <div className="subcategory-meta">
+                        <span className="subcategory-percent">{subPercent}%</span>
+                        <b className="subcategory-value">{subcategory.value}</b>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>}
             </div>
           })}
-          <div className="category-breakdown-total"><span>Grand Total</span><b>{total}</b></div>
+          <div className="category-breakdown-total">
+            <span>Grand Total</span>
+            <b>{total} reviews</b>
+          </div>
         </div>
       )}
     </section>

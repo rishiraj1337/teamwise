@@ -80,9 +80,7 @@ router.put('/settings/ai', requireRole([ROLES.ADMIN]), async (req, res, next) =>
     if (model !== undefined) {
       await settingsRepository.set('ai_model', model, 'ai', 'Model identifier for OpenRouter or custom LLM');
     }
-    if (apiKey !== undefined && apiKey !== '***') {
-      await settingsRepository.set('ai_api_key', apiKey, 'ai', 'API Key for AI provider');
-    }
+    // API keys are strictly configured through server environment variables (.env) only.
     if (baseUrl !== undefined) {
       await settingsRepository.set('ai_base_url', baseUrl, 'ai', 'Base URL for AI endpoint');
     }

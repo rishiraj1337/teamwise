@@ -108,7 +108,6 @@ export function PlatformSettingsPage() {
         provider,
         model: defaultModel,
         baseUrl: defaultBaseUrl || undefined,
-        apiKey: ai.apiKey && ai.apiKey !== '***' ? String(ai.apiKey) : undefined,
         sourceEmailEnabled: ai.sourceEmailEnabled !== undefined ? Boolean(ai.sourceEmailEnabled) : true,
         sourcePlaystoreEnabled: Boolean(ai.sourcePlaystoreEnabled),
         sourceChatbotEnabled: Boolean(ai.sourceChatbotEnabled),
@@ -373,22 +372,31 @@ export function PlatformSettingsPage() {
               />
             </label>
 
-            <label>
-              <span>API Key</span>
-              <input
-                type="password"
-                placeholder={
-                  selectedProvider === 'openai'
-                    ? 'Configured via OPENAI_API_KEY (.env) or set custom'
-                    : selectedProvider === 'openrouter'
-                      ? 'Configured via OPENROUTER_API_KEY (.env) or set custom'
-                      : 'Not required for heuristic'
-                }
-                value={String(ai.apiKey ?? '')}
-                onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
-                disabled={selectedProvider === 'heuristic'}
-              />
-            </label>
+            <div className="platform-settings-env-key-notice">
+              <div className="env-key-badge-row">
+                <span className="env-key-label">API Key Security</span>
+                <span className={`status-badge ${selectedProvider === 'heuristic' ? 'status-badge--inactive' : ai.apiKey ? 'status-badge--success' : 'status-badge--warning'}`}>
+                  {selectedProvider === 'heuristic'
+                    ? 'Not Required (Local Heuristic)'
+                    : ai.apiKey
+                      ? 'Configured via Environment (.env)'
+                      : 'Missing in Environment (.env)'}
+                </span>
+              </div>
+              <p className="env-key-helptext">
+                {selectedProvider === 'openai' ? (
+                  <>
+                    API keys cannot be entered in the UI. Configure <code>OPENAI_API_KEY</code> directly in your <code>.env</code> file.
+                  </>
+                ) : selectedProvider === 'openrouter' ? (
+                  <>
+                    API keys cannot be entered in the UI. Configure <code>OPENROUTER_API_KEY</code> directly in your <code>.env</code> file.
+                  </>
+                ) : (
+                  <>Heuristic classification runs locally without calling external LLM providers or requiring API keys.</>
+                )}
+              </p>
+            </div>
 
             <div className="platform-settings-check--full" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '6px' }}>
               <label className="platform-settings-check">

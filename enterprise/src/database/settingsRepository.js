@@ -134,11 +134,14 @@ class SettingsRepository {
     const provider = settingValue(all, 'ai_provider', 'openrouter');
     const isAiOpenAi = provider === 'openai';
 
+    // API Key is strictly managed via environment variables (.env)
+    const apiKey = (isAiOpenAi ? env.OPENAI_API_KEY : env.OPENROUTER_API_KEY) || '';
+
     return {
       enabled: settingValue(all, 'ai_enabled', true),
       provider,
       model: settingValue(all, 'ai_model', '') || (isAiOpenAi ? (env.OPENAI_MODEL || 'gpt-4o') : (env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct')),
-      apiKey: settingValue(all, 'ai_api_key', '') || (isAiOpenAi ? (env.OPENAI_API_KEY || '') : (env.OPENROUTER_API_KEY || '')),
+      apiKey,
       baseUrl: settingValue(all, 'ai_base_url', '') || (isAiOpenAi ? (env.OPENAI_BASE_URL || 'https://api.openai.com/v1') : (env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1')),
       timeoutMs: settingValue(all, 'ai_timeout_ms', null) || env.OPENROUTER_TIMEOUT_MS || 30000,
       categories: Array.isArray(categories) ? categories : DEFAULT_CATEGORIES,

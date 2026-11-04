@@ -911,9 +911,13 @@ button.sidebar-brand { width: fit-content; border: 0; background: transparent; c
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 135px;
-  overflow-y: auto;
+  gap: 4px;
+  overflow: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chart-legend-labeled::-webkit-scrollbar {
+  display: none;
 }
 .chart-legend-item {
   display: flex;

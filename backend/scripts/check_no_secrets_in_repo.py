@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 PATTERNS = [
-    re.compile(r"Zoho-enczapikey\s+\S+", re.I),
+    re.compile(r"Zoho-enczapikey\s+[A-Za-z0-9+/=]{20,}", re.I),
     re.compile(r"^ZEPTOMAIL_API_KEY=(?!$|Zoho-enczapikey\s*<)", re.M),
 ]
 

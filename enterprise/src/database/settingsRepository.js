@@ -2,6 +2,7 @@
 
 const { getPool } = require('./connection');
 const logger = require('../core/logger');
+const env = require('../config/env');
 const { DEFAULT_CATEGORIES, DEFAULT_SUBCATEGORIES } = require('../config/constants');
 
 function settingValue(all, key, defaultValue = undefined) {
@@ -133,10 +134,10 @@ class SettingsRepository {
     return {
       enabled: settingValue(all, 'ai_enabled', true),
       provider: settingValue(all, 'ai_provider', 'openrouter'),
-      model: settingValue(all, 'ai_model', 'meta-llama/llama-3.3-70b-instruct'),
-      apiKey: settingValue(all, 'ai_api_key', ''),
-      baseUrl: settingValue(all, 'ai_base_url', 'https://openrouter.ai/api/v1'),
-      timeoutMs: settingValue(all, 'ai_timeout_ms', 30000),
+      model: settingValue(all, 'ai_model', '') || env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct',
+      apiKey: settingValue(all, 'ai_api_key', '') || env.OPENROUTER_API_KEY || '',
+      baseUrl: settingValue(all, 'ai_base_url', '') || env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+      timeoutMs: settingValue(all, 'ai_timeout_ms', null) || env.OPENROUTER_TIMEOUT_MS || 30000,
       categories: Array.isArray(categories) ? categories : DEFAULT_CATEGORIES,
       subcategories: typeof subcategories === 'object' ? subcategories : DEFAULT_SUBCATEGORIES,
 

@@ -40,6 +40,8 @@ function parseEmailPayload(rawJson) {
   let bodyText = '';
   if (typeof email.bodyText === 'string' && email.bodyText.length > 0) {
     bodyText = email.bodyText;
+  } else if (typeof email.bodyPreview === 'string' && email.bodyPreview.length > 0) {
+    bodyText = email.bodyPreview;
   } else if (typeof email.body === 'string') {
     bodyText = email.body.includes('<') ? stripHtml(email.body) : email.body;
   } else if (email.body && typeof email.body.content === 'string') {

@@ -9,7 +9,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-teamwise}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./enterprise/sql/01_init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
@@ -34,7 +34,7 @@ services:
       - .env
     ports:
       - "${APP_PORT:-8080}:80"
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_PORT:-8003}:8000"
       - "${ENTERPRISE_PORT:-3000}:3000"
     environment:
       MYSQL_HOST: mysql

@@ -19,6 +19,18 @@ export const REVIEW_CHANNELS = [
   'Chatbot',
 ] as const
 
+export type ReviewParsedMetadata = {
+  amount?: string
+  txn_id?: string
+  rrn?: string
+  payment_mode?: string
+  thread_reference?: string | null
+  source_channel?: string
+  app_version?: string
+  ingest_time?: string | null
+  extracted_tags?: string[]
+}
+
 export type ReviewRow = {
   unique_id: string
   channel: string
@@ -38,6 +50,7 @@ export type ReviewRow = {
   review_link: string
   app_version_code?: string
   app_version_name?: string
+  parsed_metadata?: ReviewParsedMetadata
   created_at: string
   updated_at: string
 }

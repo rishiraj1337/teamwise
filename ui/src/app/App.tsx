@@ -18,6 +18,7 @@ import { ManageConfigurationsPage } from '../features/config/ManageConfiguration
 import { ChatbotTicketsPage } from '../features/chatbot/ChatbotTicketsPage'
 import { PlatformSettingsPage } from '../features/platform/PlatformSettingsPage'
 import { IntegrationsPage } from '../features/integrations/IntegrationsPage'
+import { ToastContainer } from '../components/ui/Toast'
 import { isOperationsUser } from '../utils/department'
 import { getDepartmentContent, projects, tasks } from '../mocks/workspaceData'
 import type { UserPublic, UserRegister } from '../types/auth'
@@ -260,6 +261,7 @@ function App() {
       </main>
 
       {assistantOpen && <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setAssistantOpen(false) }}><aside className="assistant-drawer" aria-label="AI assistant"><div className="drawer-heading"><span className="assistant-heading-icon"><Icon name="spark" size={18} /></span><span><b>Ask Teamwise</b><small>AI workspace assistant <span className="preview-tag">PREVIEW</span></small></span><button className="icon-button" type="button" aria-label="Close assistant" onClick={() => setAssistantOpen(false)}><Icon name="close" size={19} /></button></div><div className="assistant-context"><span className="context-dot" />Using your authorized workspace scope<span className="context-lock">⌑</span></div><div className="assistant-chat">{messages.length === 0 ? <div className="assistant-welcome"><span className="welcome-spark"><Icon name="spark" size={24} /></span><h3>How can I help?</h3><p>Get a clearer view of your work across the tools you use every day.</p><span className="suggestion-label">TRY ASKING</span><button type="button" onClick={() => openAssistant('What is my team working on?')}>What is my team working on? <Icon name="arrow" size={15} /></button><button type="button" onClick={() => openAssistant('What is blocking delivery this week?')}>What is blocking delivery this week? <Icon name="arrow" size={15} /></button><button type="button" onClick={() => openAssistant('What needs my attention today?')}>What needs my attention today? <Icon name="arrow" size={15} /></button></div> : messages.map((message, index) => <div className={`chat-message ${message.from}`} key={`${index}-${message.text}`}><span className="chat-avatar">{message.from === 'assistant' ? <Icon name="spark" size={14} /> : <Avatar person={currentUser} size="small" />}</span><p>{message.text}</p></div>)}</div><form className="assistant-input" onSubmit={sendAssistantMessage}><input aria-label="Ask the AI assistant" placeholder="Ask about your work..." value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} /><button type="submit" aria-label="Send message"><Icon name="arrow" size={17} /></button></form><p className="assistant-disclaimer">Preview only. AI responses and source-system actions are not enabled.</p></aside></div>}
+      <ToastContainer />
     </div>
   )
 }

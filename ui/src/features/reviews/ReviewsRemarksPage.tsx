@@ -26,6 +26,8 @@ import {
   sendDesktopNotification,
   setNotificationsEnabled,
 } from '../../utils/desktopNotification'
+import { soundService } from '../../utils/soundNotification'
+import { toast } from '../../components/ui/Toast'
 
 type TimePreset = 'all' | 'today' | 'week' | 'month' | 'custom'
 
@@ -73,8 +75,9 @@ export function ReviewsRemarksPage({
   const [taxonomy, setTaxonomy] = useState<ReviewTaxonomy | null>(null)
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
 
-  // Real-time notification toggle
+  // Real-time notification & sound toggles
   const [notificationsActive, setNotificationsActive] = useState(() => areNotificationsEnabled())
+  const [soundActive, setSoundActive] = useState(() => soundService.isSoundEnabled())
 
   // Ref to track latest review ID for desktop notification triggers
   const latestSeenIdRef = useRef<string | null>(null)
@@ -263,11 +266,13 @@ export function ReviewsRemarksPage({
         if (listResponse.items.length > 0) {
           const newest = listResponse.items[0]
           if (latestSeenIdRef.current && latestSeenIdRef.current !== newest.unique_id) {
-            // New review arrived! Trigger platform desktop notification
+            // New review arrived! Trigger platform desktop notification, chime sound, and toast
             sendDesktopNotification(`New Review Ingested: ${newest.unique_id}`, {
               body: `${newest.channel} • ${newest.category} (${newest.star_ratings}★)\n${newest.review_text.slice(0, 100)}`,
               tag: newest.unique_id,
             })
+            soundService.playChime()
+            toast.info(`New review received: ${newest.unique_id} (${newest.channel})`)
           }
           latestSeenIdRef.current = newest.unique_id
         }
@@ -303,14 +308,30 @@ export function ReviewsRemarksPage({
     if (notificationsActive) {
       setNotificationsEnabled(false)
       setNotificationsActive(false)
+      toast.info('Desktop notifications turned off')
     } else {
       const granted = await requestNotificationPermission()
       setNotificationsActive(granted)
       if (granted) {
+        toast.success('Desktop alerts enabled')
         sendDesktopNotification('Teamwise Review Notifications Enabled', {
           body: 'You will receive real-time desktop alerts as reviews arrive.',
         })
+      } else {
+        toast.error('Desktop notification permission denied')
       }
+    }
+  }
+
+  function handleToggleSound() {
+    const next = !soundActive
+    soundService.setSoundEnabled(next)
+    setSoundActive(next)
+    if (next) {
+      soundService.playChime()
+      toast.success('Notification sound enabled')
+    } else {
+      toast.info('Notification sound muted')
     }
   }
 
@@ -355,8 +376,11 @@ export function ReviewsRemarksPage({
       }
       const stamp = new Date().toISOString().slice(0, 10)
       downloadReviewExportBlob(blob, `reviews-export-${stamp}.csv`)
+      toast.success('Reviews exported to CSV successfully')
     } catch (error) {
-      setExportError(error instanceof ApiError ? error.message : 'Export failed. Try again.')
+      const msg = error instanceof ApiError ? error.message : 'Export failed. Try again.'
+      setExportError(msg)
+      toast.error(msg)
     } finally {
       setExporting(false)
     }
@@ -412,6 +436,16 @@ export function ReviewsRemarksPage({
               <span className="live-sync-dot" />
               Live Sync
             </span>
+
+            <button
+              type="button"
+              className={`notification-toggle-btn sound-toggle-btn ${soundActive ? 'active' : ''}`}
+              onClick={handleToggleSound}
+              title={soundActive ? 'Notification sound enabled (click to mute)' : 'Notification sound muted (click to enable)'}
+            >
+              <Icon name="spark" size={14} />
+              <span>{soundActive ? 'Sound ON' : 'Sound OFF'}</span>
+            </button>
 
             <button
               type="button"

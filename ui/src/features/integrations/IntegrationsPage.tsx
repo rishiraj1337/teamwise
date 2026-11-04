@@ -1,200 +1,209 @@
-import { useCallback, useEffect, useState } from 'react'
-import {
-  fetchChatbotIngestionStatus,
-  fetchEmailIngestionStatus,
-  fetchFilteredEmails,
-  fetchPlaystoreIngestionStatus,
-  triggerChatbotPoll,
-  triggerEmailIngestion,
-  triggerPlaystoreIngestion,
-  type EmailIngestionStats,
-  type FilteredEmailItem,
-} from '../../api/ingestion'
-import { enterpriseFetchEmailFilteredStats } from '../../api/enterprise'
-import { ensurePlatformSession } from '../../api/platformClient'
-import { ApiError } from '../../api/client'
-import { EmptyState } from '../../components/ui/EmptyState'
+import { useState } from 'react'
 import { Icon } from '../../components/ui/Icon'
+import { toast } from '../../components/ui/Toast'
+
+type IntegrationCategory = 'all' | 'messaging' | 'tickets' | 'developer' | 'hr'
+
+type IntegrationItem = {
+  id: string
+  name: string
+  category: IntegrationCategory
+  description: string
+  iconName: string
+  status: 'connected' | 'configured' | 'available' | 'coming_soon'
+  badge: string
+  actionLabel: string
+}
+
+const INTEGRATIONS_CATALOG: IntegrationItem[] = [
+  {
+    id: 'github',
+    name: 'GitHub Enterprise / Actions',
+    category: 'developer',
+    description: 'Repository dispatch hooks and CI/CD event webhooks for automated workflow dispatch.',
+    iconName: 'terminal',
+    status: 'connected',
+    badge: 'Connected',
+    actionLabel: 'Manage Webhook',
+  },
+  {
+    id: 'slack',
+    name: 'Slack Alerts & Notifications',
+    category: 'messaging',
+    description: 'Stream urgent customer escalations and review sentiment summaries to dedicated channels.',
+    iconName: 'spark',
+    status: 'configured',
+    badge: 'Ready to Link',
+    actionLabel: 'Configure Channel',
+  },
+  {
+    id: 'teams',
+    name: 'Microsoft Teams',
+    category: 'messaging',
+    description: 'Incoming webhook connector for real-time notification cards and incident broadcasts.',
+    iconName: 'plug',
+    status: 'available',
+    badge: 'Available',
+    actionLabel: 'Connect Teams',
+  },
+  {
+    id: 'jira',
+    name: 'Atlassian Jira Software',
+    category: 'tickets',
+    description: 'Synchronize 1-star reviews and urgent payment defects directly to engineering sprint boards.',
+    iconName: 'layers',
+    status: 'available',
+    badge: 'Available',
+    actionLabel: 'Link Jira Board',
+  },
+  {
+    id: 'openproject',
+    name: 'OpenProject Enterprise',
+    category: 'tickets',
+    description: 'Bi-directional work package creation and bug tracking across operational departments.',
+    iconName: 'check',
+    status: 'connected',
+    badge: 'Connected',
+    actionLabel: 'Sync Settings',
+  },
+  {
+    id: 'keka',
+    name: 'Keka HRMS & Directory',
+    category: 'hr',
+    description: 'Automated employee directory lookup and organizational assignment synchronization.',
+    iconName: 'user',
+    status: 'connected',
+    badge: 'Active Sync',
+    actionLabel: 'View Directory',
+  },
+  {
+    id: 'webhooks',
+    name: 'Custom Outgoing Webhooks',
+    category: 'developer',
+    description: 'Dispatch authenticated HTTPS events to internal microservices on review status updates.',
+    iconName: 'arrow',
+    status: 'available',
+    badge: 'Extensible',
+    actionLabel: 'Add Webhook URL',
+  },
+]
 
 export function IntegrationsPage() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [emailStats, setEmailStats] = useState<EmailIngestionStats | null>(null)
-  const [playstoreStats, setPlaystoreStats] = useState<Record<string, unknown> | null>(null)
-  const [chatbotStats, setChatbotStats] = useState<Record<string, unknown> | null>(null)
-  const [filteredStats, setFilteredStats] = useState<Record<string, number> | null>(null)
-  const [filtered, setFiltered] = useState<FilteredEmailItem[]>([])
-  const [busy, setBusy] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const refresh = useCallback(async () => {
-    setError('')
-    setLoading(true)
-    try {
-      await ensurePlatformSession()
-      const [email, playstore, chatbot, quarantine, quarantineStats] = await Promise.all([
-        fetchEmailIngestionStatus(),
-        fetchPlaystoreIngestionStatus(),
-        fetchChatbotIngestionStatus(),
-        fetchFilteredEmails(1, 8),
-        enterpriseFetchEmailFilteredStats().catch(() => ({})),
-      ])
-      setEmailStats(email)
-      setPlaystoreStats(playstore as Record<string, unknown>)
-      setChatbotStats(chatbot as Record<string, unknown>)
-      setFiltered(quarantine.items ?? [])
-      setFilteredStats(quarantineStats as Record<string, number>)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not load ingestion status.')
-    } finally {
-      setLoading(false)
+  const filteredItems = INTEGRATIONS_CATALOG.filter((item) => {
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
+
+  function handleAction(item: IntegrationItem) {
+    if (item.status === 'connected') {
+      toast.info(`${item.name} is connected and syncing actively.`)
+    } else {
+      toast.info(`${item.actionLabel} modal opened for ${item.name}`)
     }
-  }, [])
-
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
-
-  async function runAction(key: string, action: () => Promise<unknown>) {
-    setBusy(key)
-    setError('')
-    try {
-      await ensurePlatformSession()
-      await action()
-      await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action failed.')
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  if (loading) {
-    return <EmptyState message="Loading ingestion pipelines…" />
   }
 
   return (
     <div className="integrations-page">
       <div className="welcome-row">
         <div>
-          <div className="welcome-eyebrow"><span className="online-indicator" />CONNECTED TOOLS</div>
-          <h1>Ingestion & pipelines</h1>
-          <p>Email directory watcher, Play Store sync, and chatbot polling via the enterprise review platform.</p>
+          <div className="welcome-eyebrow">
+            <span className="online-indicator" />
+            WORKSPACE TOOLS & CONNECTIVITY
+          </div>
+          <h1>Integrations & Connected Apps</h1>
+          <p>
+            Connect and manage external platforms, issue tracking services, communication tools, and webhooks.
+          </p>
         </div>
-        <button type="button" className="secondary-button" onClick={() => void refresh()}>
-          Refresh
-        </button>
       </div>
 
-      {error && <p className="login-error form-level-error" role="alert">{error}</p>}
-
-      <section className="integrations-grid">
-        <article className="panel integration-card">
-          <div className="panel-heading">
-            <div>
-              <span className="section-kicker">EMAIL-SFTP</span>
-              <h2>Email ingestion</h2>
-            </div>
-            <Icon name="plug" size={20} />
-          </div>
-          <ul className="integration-metrics">
-            <li><span>Status</span><b>{emailStats?.isProcessing ? 'Processing' : 'Monitoring'}</b></li>
-            <li><span>Pending files</span><b>{emailStats?.pendingCount ?? 0}</b></li>
-            <li><span>Support ingested</span><b>{emailStats?.supportCount ?? 0}</b></li>
-            <li><span>Non-support</span><b>{emailStats?.nonSupportCount ?? 0}</b></li>
-            <li><span>Last run</span><b>{emailStats?.lastRunAt ? new Date(emailStats.lastRunAt).toLocaleString() : '—'}</b></li>
-          </ul>
+      {/* Filter and Search Bar */}
+      <div className="integrations-toolbar">
+        <div className="quick-date-presets" role="tablist" aria-label="Category filter">
           <button
             type="button"
-            className="primary-button"
-            disabled={busy === 'email'}
-            onClick={() => void runAction('email', triggerEmailIngestion)}
+            className={`preset-pill ${selectedCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('all')}
           >
-            {busy === 'email' ? 'Running…' : 'Run email ingestion'}
+            All Tools
           </button>
-        </article>
-
-        <article className="panel integration-card">
-          <div className="panel-heading">
-            <div>
-              <span className="section-kicker">GOOGLE PLAY</span>
-              <h2>Play Store sync</h2>
-            </div>
-            <Icon name="layers" size={20} />
-          </div>
-          <ul className="integration-metrics">
-            <li><span>Scraping</span><b>{playstoreStats?.isScraping ? 'Yes' : 'Idle'}</b></li>
-            <li><span>Total scraped</span><b>{String(playstoreStats?.totalScraped ?? '—')}</b></li>
-            <li><span>Last run</span><b>{playstoreStats?.lastRunAt ? new Date(String(playstoreStats.lastRunAt)).toLocaleString() : '—'}</b></li>
-          </ul>
           <button
             type="button"
-            className="primary-button"
-            disabled={busy === 'playstore'}
-            onClick={() => void runAction('playstore', triggerPlaystoreIngestion)}
+            className={`preset-pill ${selectedCategory === 'messaging' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('messaging')}
           >
-            {busy === 'playstore' ? 'Running…' : 'Trigger Play Store sync'}
+            Messaging
           </button>
-        </article>
-
-        <article className="panel integration-card">
-          <div className="panel-heading">
-            <div>
-              <span className="section-kicker">CHATBOT</span>
-              <h2>Chatbot feedback</h2>
-            </div>
-            <Icon name="spark" size={20} />
-          </div>
-          <ul className="integration-metrics">
-            <li><span>Polling</span><b>{chatbotStats?.isPolling ? 'Active' : 'Idle'}</b></li>
-            <li><span>Sessions</span><b>{String(chatbotStats?.totalSessions ?? '—')}</b></li>
-            <li><span>Last poll</span><b>{chatbotStats?.lastPollAt ? new Date(String(chatbotStats.lastPollAt)).toLocaleString() : '—'}</b></li>
-          </ul>
           <button
             type="button"
-            className="primary-button"
-            disabled={busy === 'chatbot'}
-            onClick={() => void runAction('chatbot', triggerChatbotPoll)}
+            className={`preset-pill ${selectedCategory === 'tickets' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('tickets')}
           >
-            {busy === 'chatbot' ? 'Running…' : 'Poll chatbot now'}
+            Issue Trackers
           </button>
-        </article>
-      </section>
-
-      <section className="panel integration-quarantine">
-        <div className="panel-heading">
-          <div>
-            <span className="section-kicker">QUARANTINE</span>
-            <h2>Filtered non-support email</h2>
-            {filteredStats?.total != null && <p className="panel-sub">Total quarantined: {filteredStats.total}</p>}
-          </div>
+          <button
+            type="button"
+            className={`preset-pill ${selectedCategory === 'developer' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('developer')}
+          >
+            Developer & Webhooks
+          </button>
+          <button
+            type="button"
+            className={`preset-pill ${selectedCategory === 'hr' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('hr')}
+          >
+            Directory & HR
+          </button>
         </div>
-        {filtered.length === 0 ? (
-          <EmptyState message="No quarantined messages in the latest page." />
-        ) : (
-          <div className="reviews-table-wrap">
-            <table className="reviews-table">
-              <thead>
-                <tr>
-                  <th>From</th>
-                  <th>Subject</th>
-                  <th>Reason</th>
-                  <th>Received</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.from_address}</td>
-                    <td>{row.subject}</td>
-                    <td>{row.rejection_reason}</td>
-                    <td>{new Date(row.received_date_time).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+
+        <div className="integrations-search-wrap">
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Search integrations..."
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="integrations-search-input"
+          />
+        </div>
+      </div>
+
+      {/* Integrations Grid */}
+      <div className="integrations-modern-grid">
+        {filteredItems.map((item) => (
+          <article key={item.id} className="panel integration-modern-card">
+            <div className="integration-card-top">
+              <div className="integration-icon-wrap">
+                <Icon name={item.iconName} size={22} />
+              </div>
+              <span className={`integration-status-chip integration-status-chip--${item.status}`}>
+                {item.badge}
+              </span>
+            </div>
+
+            <div className="integration-card-content">
+              <h3>{item.name}</h3>
+              <p>{item.description}</p>
+            </div>
+
+            <div className="integration-card-footer">
+              <button
+                type="button"
+                className={`secondary-button ${item.status === 'connected' ? 'connected-btn' : ''}`}
+                onClick={() => handleAction(item)}
+              >
+                {item.actionLabel}
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   )
 }

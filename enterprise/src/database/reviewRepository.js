@@ -5,6 +5,7 @@ const logger = require('../core/logger');
 const { ensureCategorySubcategory } = require('./taxonomyRepository');
 const { escapeLikePattern } = require('../services/reviewExport');
 const { truncateUtf8 } = require('../core/stringUtil');
+const { extractCustomerMetadata } = require('../services/metadataParser');
 
 const REVIEW_LINK_MAX_BYTES = 512;
 
@@ -214,10 +215,14 @@ class ReviewRepository {
     `;
 
     const [rows] = await pool.query(querySql, [...params, Number(limit), Number(offset)]);
-    const normalizedRows = rows.map((r) => ({
-      ...r,
-      channel: r.channel === 'Email-SFTP' ? 'Email' : r.channel,
-    }));
+    const normalizedRows = rows.map((r) => {
+      const channel = r.channel === 'Email-SFTP' ? 'Email' : r.channel;
+      return {
+        ...r,
+        channel,
+        parsed_metadata: extractCustomerMetadata({ ...r, channel }),
+      };
+    });
 
     return {
       reviews: normalizedRows,

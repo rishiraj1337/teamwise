@@ -15,7 +15,7 @@ export type ReviewFilterOptions = {
 export const REVIEW_CHANNELS = [
   'All',
   'Google Playstore',
-  'Email-SFTP',
+  'Email',
   'Chatbot',
 ] as const
 
@@ -36,6 +36,8 @@ export type ReviewRow = {
   developer_reply_time: string | null
   developer_reply_text: string
   review_link: string
+  app_version_code?: string
+  app_version_name?: string
   created_at: string
   updated_at: string
 }

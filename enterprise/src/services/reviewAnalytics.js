@@ -124,7 +124,7 @@ async function buildReviewAnalytics({ startDate = null, endDate = null } = {}) {
       categories: taxonomy.categories,
       priorities: taxonomy.priorities,
       statuses: taxonomy.statuses,
-      channels: channelRows.map((row) => String(row.value)),
+      channels: Array.from(new Set(channelRows.map((row) => (row.value === 'Email-SFTP' ? 'Email' : String(row.value))))),
     },
   };
 }

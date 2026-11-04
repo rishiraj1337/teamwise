@@ -63,7 +63,7 @@ class ReviewRepository {
     }
 
     const record = {
-      channel: data.channel || 'Email-SFTP',
+      channel: data.channel === 'Email-SFTP' ? 'Email' : (data.channel || 'Email'),
       unique_id: uniqueId,
       app_version_code: data.app_version_code || 'N/A',
       app_version_name: data.app_version_name || 'N/A',
@@ -138,8 +138,12 @@ class ReviewRepository {
     const params = [];
 
     if (channel && channel !== 'All') {
-      conditions.push('channel = ?');
-      params.push(channel);
+      if (channel === 'Email' || channel === 'Email-SFTP') {
+        conditions.push("(channel = 'Email' OR channel = 'Email-SFTP')");
+      } else {
+        conditions.push('channel = ?');
+        params.push(channel);
+      }
     }
     if (starRating !== null && starRating !== undefined && starRating !== '') {
       conditions.push('star_ratings = ?');
@@ -210,9 +214,13 @@ class ReviewRepository {
     `;
 
     const [rows] = await pool.query(querySql, [...params, Number(limit), Number(offset)]);
+    const normalizedRows = rows.map((r) => ({
+      ...r,
+      channel: r.channel === 'Email-SFTP' ? 'Email' : r.channel,
+    }));
 
     return {
-      reviews: rows,
+      reviews: normalizedRows,
       total,
       page: Number(page),
       limit: Number(limit),

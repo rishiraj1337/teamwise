@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../../components/ui/Icon'
 import { downloadCsv } from '../../utils/csv'
 import { fetchReviewAnalytics, logReviewCsvExport, type ReviewAnalyticsResponse } from '../../api/reviews'
@@ -41,6 +41,8 @@ function TicketChart({
   )
 }
 
+type TimePreset = 'all' | 'today' | 'week' | 'month' | 'custom'
+
 export function OperationsOverviewReviewReports({
   onDrillDown,
 }: {
@@ -49,14 +51,41 @@ export function OperationsOverviewReviewReports({
   const [analytics, setAnalytics] = useState<ReviewAnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [timePreset, setTimePreset] = useState<TimePreset>('all')
+  const [customStartDate, setCustomStartDate] = useState('')
+  const [customEndDate, setCustomEndDate] = useState('')
+
+  const { computedStartDate, computedEndDate } = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    if (timePreset === 'today') {
+      return { computedStartDate: today, computedEndDate: today }
+    }
+    if (timePreset === 'week') {
+      const d = new Date()
+      const day = d.getDay()
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+      const monday = new Date(d.setDate(diff)).toISOString().slice(0, 10)
+      return { computedStartDate: monday, computedEndDate: today }
+    }
+    if (timePreset === 'month') {
+      const d = new Date()
+      const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
+      return { computedStartDate: firstDay, computedEndDate: today }
+    }
+    if (timePreset === 'custom') {
+      return { computedStartDate: customStartDate, computedEndDate: customEndDate }
+    }
+    return { computedStartDate: '', computedEndDate: '' }
+  }, [timePreset, customStartDate, customEndDate])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError('')
-    fetchReviewAnalytics({ start_date: startDate || undefined, end_date: endDate || undefined })
+    fetchReviewAnalytics({
+      start_date: computedStartDate || undefined,
+      end_date: computedEndDate || undefined,
+    })
       .then((response) => {
         if (!cancelled) setAnalytics(response)
       })
@@ -71,20 +100,59 @@ export function OperationsOverviewReviewReports({
     return () => {
       cancelled = true
     }
-  }, [startDate, endDate])
+  }, [computedStartDate, computedEndDate])
 
   return (
     <>
-      <div className="reviews-filters report-date-filters">
-        <label>From date<input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-        <label>To date<input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+      <div className="quick-date-presets" role="radiogroup" aria-label="Report period filter">
+        <span className="thread-pill-kicker" style={{ marginRight: '4px' }}>Reports Period:</span>
+        {(
+          [
+            ['all', 'All Time'],
+            ['today', 'Today'],
+            ['week', 'This Week'],
+            ['month', 'This Month'],
+            ['custom', 'Custom Range'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={`quick-date-pill ${timePreset === key ? 'active' : ''}`}
+            onClick={() => setTimePreset(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+
+      {timePreset === 'custom' && (
+        <div className="reviews-filters report-date-filters" style={{ marginBottom: '12px' }}>
+          <label>
+            From date
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(event) => setCustomStartDate(event.target.value)}
+            />
+          </label>
+          <label>
+            To date
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(event) => setCustomEndDate(event.target.value)}
+            />
+          </label>
+        </div>
+      )}
+
       <ReviewReportCards
         analytics={analytics}
         loading={loading}
         error={error}
-        startDate={startDate}
-        endDate={endDate}
+        startDate={computedStartDate}
+        endDate={computedEndDate}
         onDrillDown={onDrillDown}
       />
     </>

@@ -171,7 +171,7 @@ class EmailIngestionService {
       }
 
       const reviewRecord = {
-        channel: 'Email-SFTP',
+        channel: 'Email',
         unique_id: '',
         app_version_code: rawJson.app_version_code || 'N/A',
         app_version_name: rawJson.app_version_name || 'N/A',

@@ -131,11 +131,19 @@ class SettingsRepository {
     const categories = settingValue(all, 'ai_categories', DEFAULT_CATEGORIES);
     const subcategories = settingValue(all, 'ai_subcategories', DEFAULT_SUBCATEGORIES);
 
-    const provider = settingValue(all, 'ai_provider', 'openrouter');
+    let provider = settingValue(all, 'ai_provider', 'openrouter');
+    const openAiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const openRouterKey = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || '';
+
+    // Auto-detect provider if user supplied OPENAI_API_KEY but ai_provider is still default openrouter
+    if (provider === 'openrouter' && !openRouterKey && openAiKey) {
+      provider = 'openai';
+    }
+
     const isAiOpenAi = provider === 'openai';
 
     // API Key is strictly managed via environment variables (.env)
-    const apiKey = (isAiOpenAi ? env.OPENAI_API_KEY : env.OPENROUTER_API_KEY) || '';
+    const apiKey = (isAiOpenAi ? openAiKey : openRouterKey) || openAiKey || openRouterKey || '';
 
     return {
       enabled: settingValue(all, 'ai_enabled', true),

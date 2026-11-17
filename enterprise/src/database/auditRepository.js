@@ -47,10 +47,11 @@ class AuditRepository {
     try {
       const pool = getPool();
       const stringDetails = typeof details === 'object' && details !== null ? JSON.stringify(details) : details;
+      const safeResource = String(resource || '').slice(0, 500);
       await pool.query(
         `INSERT INTO audit_logs (user_id, user_email, action, resource, details, ip_address, created_at)
          VALUES (?, ?, ?, ?, ?, ?, NOW(3))`,
-        [userId, userEmail, action, resource, stringDetails, ipAddress]
+        [userId, userEmail, action, safeResource, stringDetails, ipAddress]
       );
     } catch (err) {
       logger.error({ error: err.message, action, resource }, 'Failed to write audit log entry');

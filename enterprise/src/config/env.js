@@ -62,6 +62,10 @@ const env = {
   OPENROUTER_BASE_URL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
   OPENROUTER_TIMEOUT_MS: parseInteger(process.env.OPENROUTER_TIMEOUT_MS, 30000),
 
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o',
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+
   POLL_INTERVAL_SECONDS: parseInteger(process.env.POLL_INTERVAL_SECONDS, 10),
   POLL_ON_START: parseBoolean(process.env.POLL_ON_START, true),
 

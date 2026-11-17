@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   `user_id` INT UNSIGNED NULL,
   `user_email` VARCHAR(191) NOT NULL DEFAULT 'system',
   `action` VARCHAR(100) NOT NULL,
-  `resource` VARCHAR(100) NOT NULL,
+  `resource` VARCHAR(500) NOT NULL,
   `details` TEXT NULL,
   `ip_address` VARCHAR(45) NOT NULL DEFAULT '127.0.0.1',
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

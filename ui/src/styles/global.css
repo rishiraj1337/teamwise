@@ -1,7 +1,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #f7f8fc;
+  background: var(--idb-page);
 }
 
 body {
@@ -12,11 +12,11 @@ body {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid #8c76df;
+  outline: 2px solid var(--idb-bright);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: #e6e0ff;
-  color: #443580;
+  background: var(--idb-mist);
+  color: var(--idb-indigo);
 }

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import asc, case, desc, func, select
@@ -17,6 +18,24 @@ from app.schemas.review import (
 
 OPEN_STATUSES = {"new", "in progress", "open", "pending"}
 RESOLVED_STATUSES = {"resolved", "closed", "done", "complete"}
+
+_YMD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def parse_review_filter_date(value: str | None, *, end_of_day: bool = False) -> datetime | None:
+    if not value or not str(value).strip():
+        return None
+    text = str(value).strip()
+    if _YMD_RE.match(text):
+        suffix = "T23:59:59.999000" if end_of_day else "T00:00:00"
+        parsed = datetime.fromisoformat(f"{text}{suffix}")
+    else:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        elif end_of_day and parsed.hour == 0 and parsed.minute == 0 and parsed.second == 0:
+            parsed = parsed.replace(hour=23, minute=59, second=59, microsecond=999000)
+    return parsed
 
 
 def _distinct_column_values(db: Session, column) -> list[str]:
@@ -48,6 +67,7 @@ def _review_filters(
     channel: str | None = None,
     start_date: datetime | None = None,
     end_date: datetime | None = None,
+    status_group: str | None = None,
 ):
     filters = []
     if search:
@@ -75,6 +95,11 @@ def _review_filters(
         filters.append(PlayStoreReview.review_timestamp >= start_date)
     if end_date is not None:
         filters.append(PlayStoreReview.review_timestamp <= end_date)
+    normalized_group = (status_group or "").strip().lower()
+    if normalized_group == "open":
+        filters.append(func.lower(PlayStoreReview.status).in_(OPEN_STATUSES))
+    elif normalized_group == "resolved":
+        filters.append(func.lower(PlayStoreReview.status).in_(RESOLVED_STATUSES))
     return filters
 
 
@@ -100,6 +125,7 @@ def list_reviews(
     end_date: datetime | None = None,
     sort_by: str | None = None,
     sort_order: str | None = None,
+    status_group: str | None = None,
 ) -> ReviewListResponse:
     filters = _review_filters(
         search,
@@ -111,6 +137,7 @@ def list_reviews(
         channel=channel,
         start_date=start_date,
         end_date=end_date,
+        status_group=status_group,
     )
     count_query = select(func.count()).select_from(PlayStoreReview)
     list_query = select(PlayStoreReview)
@@ -129,19 +156,49 @@ def list_reviews(
     )
 
 
-def review_analytics(db: Session) -> ReviewAnalyticsResponse:
+def _analytics_base_filters(
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+):
+    return _review_filters(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+def review_analytics(
+    db: Session,
+    *,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+) -> ReviewAnalyticsResponse:
+    date_filters = _analytics_base_filters(start_date, end_date)
+
+    def apply_dates(query):
+        for clause in date_filters:
+            query = query.where(clause)
+        return query
+
     category_rows = db.execute(
-        select(PlayStoreReview.category, func.count())
-        .where(PlayStoreReview.category != "N/A")
-        .group_by(PlayStoreReview.category)
-        .order_by(func.count().desc())
+        apply_dates(
+            select(PlayStoreReview.category, func.count()).where(PlayStoreReview.category != "N/A")
+        ).group_by(PlayStoreReview.category).order_by(func.count().desc())
     ).all()
     category_breakdown = [
         ChartSlice(label=str(label or "Unknown"), value=int(count)) for label, count in category_rows
     ]
     category_detail_rows = db.execute(
-        select(PlayStoreReview.category, PlayStoreReview.subcategory, func.count())
-        .where(PlayStoreReview.category != "N/A")
+        apply_dates(
+            select(PlayStoreReview.category, PlayStoreReview.subcategory, func.count()).where(
+                PlayStoreReview.category != "N/A"
+            )
+        )
         .group_by(PlayStoreReview.category, PlayStoreReview.subcategory)
         .order_by(PlayStoreReview.category, func.count().desc())
     ).all()
@@ -161,15 +218,16 @@ def review_analytics(db: Session) -> ReviewAnalyticsResponse:
         else_="Negative",
     )
     sentiment_rows = db.execute(
-        select(sentiment_label, func.count()).group_by(sentiment_label)
+        apply_dates(select(sentiment_label, func.count())).group_by(sentiment_label)
     ).all()
     sentiment_breakdown = [
         ChartSlice(label=str(label), value=int(count)) for label, count in sentiment_rows
     ]
 
     priority_rows = db.execute(
-        select(PlayStoreReview.priority, func.count())
-        .where(PlayStoreReview.priority != "N/A")
+        apply_dates(
+            select(PlayStoreReview.priority, func.count()).where(PlayStoreReview.priority != "N/A")
+        )
         .group_by(PlayStoreReview.priority)
         .order_by(func.count().desc())
     ).all()
@@ -178,9 +236,9 @@ def review_analytics(db: Session) -> ReviewAnalyticsResponse:
     ]
 
     status_rows = db.execute(
-        select(func.lower(PlayStoreReview.status), func.count())
-        .where(PlayStoreReview.status != "N/A")
-        .group_by(func.lower(PlayStoreReview.status))
+        apply_dates(
+            select(func.lower(PlayStoreReview.status), func.count()).where(PlayStoreReview.status != "N/A")
+        ).group_by(func.lower(PlayStoreReview.status))
     ).all()
     open_count = 0
     resolved_count = 0

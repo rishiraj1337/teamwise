@@ -116,14 +116,18 @@ export type ReviewTaxonomy = {
 }
 
 export function fetchReviewTaxonomy() {
-  return import('./enterprise').then((m) => m.enterpriseFetchReviewTaxonomy())
+  return apiRequest<ReviewTaxonomy>('/api/v1/reviews/taxonomy')
 }
 
 export function fetchReviewAnalytics(filters?: { start_date?: string; end_date?: string }) {
-  return import('./enterprise').then((m) => m.enterpriseFetchReviewAnalytics(filters))
+  const params = new URLSearchParams()
+  if (filters?.start_date) params.set('start_date', filters.start_date)
+  if (filters?.end_date) params.set('end_date', filters.end_date)
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  return apiRequest<ReviewAnalyticsResponse>(`/api/v1/reviews/analytics${suffix}`)
 }
 
-export function fetchReviews(query: ReviewQuery = {}) {
+function buildReviewQueryParams(query: ReviewQuery = {}) {
   const params = new URLSearchParams()
   if (query.limit != null) params.set('limit', String(query.limit))
   if (query.offset != null) params.set('offset', String(query.offset))
@@ -131,10 +135,19 @@ export function fetchReviews(query: ReviewQuery = {}) {
   if (query.category && query.category !== 'All') params.set('category', query.category)
   if (query.priority && query.priority !== 'All') params.set('priority', query.priority)
   if (query.status && query.status !== 'All') params.set('status', query.status)
+  if (query.status_group) params.set('status_group', query.status_group)
   if (query.min_rating != null) params.set('min_rating', String(query.min_rating))
   if (query.max_rating != null) params.set('max_rating', String(query.max_rating))
   if (query.channel && query.channel !== 'All') params.set('channel', query.channel)
-  const suffix = params.toString()
+  if (query.start_date) params.set('start_date', query.start_date)
+  if (query.end_date) params.set('end_date', query.end_date)
+  if (query.sort_by) params.set('sort_by', query.sort_by)
+  if (query.sort_order) params.set('sort_order', query.sort_order)
+  return params
+}
+
+export function fetchReviews(query: ReviewQuery = {}) {
+  const suffix = buildReviewQueryParams(query).toString()
   return apiRequest<ReviewListResponse>(`/api/v1/reviews${suffix ? `?${suffix}` : ''}`)
 }
 
@@ -187,18 +200,15 @@ export function logReviewCsvExport(payload: ReviewExportAuditPayload) {
 }
 
 export async function fetchReviewsUnified(query: ReviewQuery = {}): Promise<ReviewListResponse> {
-  const { enterpriseFetchReviews } = await import('./enterprise')
-  return enterpriseFetchReviews(query)
+  return fetchReviews(query)
 }
 
 export async function fetchAllReviewsUnified(
   query: Omit<ReviewQuery, 'limit' | 'offset'> = {},
 ): Promise<ReviewRow[]> {
-  const { enterpriseFetchAllReviews } = await import('./enterprise')
-  return enterpriseFetchAllReviews(query)
+  return fetchAllReviews(query)
 }
 
 export async function updateReviewUnified(uniqueId: string, payload: ReviewUpdatePayload) {
-  const { enterpriseUpdateReview } = await import('./enterprise')
-  return enterpriseUpdateReview(uniqueId, payload)
+  return updateReview(uniqueId, payload)
 }

@@ -128,6 +128,32 @@ docker run -d --name finai_mysql -p 3306:3306 \
 ```
 
 #### 2. Platform Backend (FastAPI)
+First time
+```bash
+cd ~/Desktop/teamwise-git-main/teamwise/backend
+rm -rf .venv
+python3 -m venv --without-pip .venv
+source .venv/bin/activate
+curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+python /tmp/get-pip.py
+pip install -r requirements.txt
+```
+Later on
+```bash
+cd ~/Desktop/teamwise-git-main/teamwise/backend
+source .venv/bin/activate    # create venv first if .venv doesn't exist (see above)
+alembic upgrade head
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+```bash
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
 ```bash
 cd backend
 python3 -m venv .venv && source .venv/bin/activate

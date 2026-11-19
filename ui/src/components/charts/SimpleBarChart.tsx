@@ -1,6 +1,6 @@
 import type { ChartSlice } from '../../api/reviews'
 
-const DEFAULT_BAR_COLOR = '#6366f1'
+const DEFAULT_BAR_COLOR = '#214c98'
 
 const PRIORITY_BAR_COLORS: Record<string, string> = {
   urgent: '#ef4444',

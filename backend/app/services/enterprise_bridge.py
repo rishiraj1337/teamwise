@@ -53,3 +53,44 @@ def enterprise_bridge_http_exception(error: EnterpriseBridgeError) -> HTTPExcept
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail=str(error),
     )
+
+
+def call_enterprise_json(
+    method: str,
+    path: str,
+    *,
+    payload: dict | None = None,
+    timeout: float = 120.0,
+) -> dict:
+    settings = get_settings()
+    token = fetch_enterprise_access_token()
+    base = settings.enterprise_api_url.rstrip("/")
+    if not path.startswith("/"):
+        path = f"/{path}"
+    body = None
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+    if payload is not None:
+        body = json.dumps(payload).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(
+        f"{base}{path}",
+        data=body,
+        method=method.upper(),
+        headers=headers,
+    )
+    context = ssl.create_default_context()
+    try:
+        with urllib.request.urlopen(request, context=context, timeout=timeout) as response:
+            raw = response.read().decode("utf-8")
+            if not raw.strip():
+                return {}
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {"result": parsed}
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        raise EnterpriseBridgeError(f"Enterprise API {method} {path} failed ({error.code}): {detail[:400]}") from error
+    except urllib.error.URLError as error:
+        raise EnterpriseBridgeError(f"Could not reach enterprise API at {base}{path}: {error.reason}") from error

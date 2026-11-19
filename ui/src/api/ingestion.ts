@@ -1,3 +1,4 @@
+import { apiRequest } from './client'
 import { platformApiRequest } from './platformClient'
 
 export type EmailIngestionStats = {
@@ -64,15 +65,15 @@ export async function fetchFilteredEmails(page = 1, limit = 10) {
 }
 
 export async function fetchPlaystoreIngestionStatus() {
-  const data = await platformApiRequest<{ success: boolean; stats: PlaystoreIngestionStats }>(
-    '/api/ingestion/playstore/status',
+  const data = await apiRequest<{ success: boolean; stats: PlaystoreIngestionStats }>(
+    '/api/v1/ingestion/playstore/status',
   )
   return data.stats
 }
 
 export async function triggerPlaystoreIngestion() {
-  return platformApiRequest<{ success: boolean; result: Record<string, unknown> }>(
-    '/api/ingestion/playstore/trigger',
+  return apiRequest<{ success: boolean; result: Record<string, unknown> }>(
+    '/api/v1/ingestion/playstore/trigger',
     { method: 'POST', body: '{}' },
   )
 }

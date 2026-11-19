@@ -14,6 +14,7 @@ import {
   type RolesMatrixData,
   type TeamwiseDirectoryUser,
 } from '../../api/teamwiseUsers'
+import { triggerPlaystoreIngestion } from '../../api/ingestion'
 import { ensurePlatformSession } from '../../api/platformClient'
 import { ApiError } from '../../api/client'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -33,6 +34,7 @@ export function PlatformSettingsPage() {
   const [matrixState, setMatrixState] = useState<Record<string, number[]>>({})
   const [busy, setBusy] = useState(false)
   const [assigningUserId, setAssigningUserId] = useState<number | null>(null)
+  const [playstoreSyncing, setPlaystoreSyncing] = useState(false)
 
   const refresh = useCallback(async () => {
     setError('')
@@ -63,6 +65,28 @@ export function PlatformSettingsPage() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  async function syncPlaystoreNow() {
+    setPlaystoreSyncing(true)
+    setError('')
+    setSuccess('')
+    try {
+      const result = await triggerPlaystoreIngestion()
+      const newCount = (result.result as { newReviewCount?: number } | undefined)?.newReviewCount ?? 0
+      const msg = `Play Store sync finished. ${newCount} new review${newCount === 1 ? '' : 's'} imported.`
+      setSuccess(msg)
+      toast.success(msg)
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Play Store sync failed. Start the Enterprise service (port 3000) and check ENTERPRISE_BRIDGE_* in backend/.env.'
+      setError(message)
+      toast.error(message)
+    } finally {
+      setPlaystoreSyncing(false)
+    }
+  }
 
   async function savePolling(event: React.FormEvent) {
     event.preventDefault()
@@ -271,6 +295,14 @@ export function PlatformSettingsPage() {
                   />
                 </label>
               )}
+              <button
+                type="button"
+                className="text-button"
+                disabled={playstoreSyncing}
+                onClick={() => void syncPlaystoreNow()}
+              >
+                {playstoreSyncing ? 'Syncing Play Store…' : 'Sync Play Store now'}
+              </button>
             </div>
 
             <div className="platform-settings-ingest-row">

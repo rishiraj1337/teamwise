@@ -9,6 +9,7 @@ from app.api.admin_users import router as admin_users_router
 from app.api.review_config import router as review_config_router
 from app.api.audit import router as audit_router
 from app.api.platform_bridge import router as platform_bridge_router
+from app.api.ingestion import router as ingestion_router
 from app.api.reviews import router as reviews_router
 from app.services.audit import record_audit
 from app.core.config import get_settings
@@ -33,6 +34,7 @@ from app.schemas.user import UserLogin, UserPublic, UserRegister
 
 router = APIRouter()
 router.include_router(reviews_router)
+router.include_router(ingestion_router)
 router.include_router(review_config_router)
 router.include_router(admin_users_router)
 router.include_router(audit_router)

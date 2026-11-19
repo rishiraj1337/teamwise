@@ -13,9 +13,6 @@ class ReviewPriority(ReviewBase):
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), onupdate=func.now()
-    )
 
 
 class ReviewCategory(ReviewBase):

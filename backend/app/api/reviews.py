@@ -16,7 +16,7 @@ from app.schemas.review import (
 )
 from app.services.audit import record_audit
 from app.services.review_taxonomy import taxonomy_for_operations
-from app.services.reviews import list_reviews, review_analytics, update_review
+from app.services.reviews import list_reviews, parse_review_filter_date, review_analytics, update_review
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -58,6 +58,11 @@ def get_reviews(
     min_rating: int | None = Query(default=None, ge=1, le=5),
     max_rating: int | None = Query(default=None, ge=1, le=5),
     channel: str | None = Query(default=None, max_length=100),
+    status_group: str | None = Query(default=None, pattern="^(open|resolved)$"),
+    start_date: str | None = Query(default=None, max_length=32),
+    end_date: str | None = Query(default=None, max_length=32),
+    sort_by: str | None = Query(default="created_at", max_length=64),
+    sort_order: str | None = Query(default="DESC", pattern="^(ASC|DESC|asc|desc)$"),
 ) -> ReviewListResponse:
     return list_reviews(
         review_db,
@@ -70,6 +75,11 @@ def get_reviews(
         min_rating=min_rating,
         max_rating=max_rating,
         channel=channel,
+        start_date=parse_review_filter_date(start_date),
+        end_date=parse_review_filter_date(end_date, end_of_day=True),
+        status_group=status_group,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 
@@ -81,8 +91,14 @@ def get_reviews(
 def get_review_analytics(
     _: User = Depends(require_operations_reviews_access),
     review_db: Session = Depends(get_review_db),
+    start_date: str | None = Query(default=None, max_length=32),
+    end_date: str | None = Query(default=None, max_length=32),
 ) -> ReviewAnalyticsResponse:
-    return review_analytics(review_db)
+    return review_analytics(
+        review_db,
+        start_date=parse_review_filter_date(start_date),
+        end_date=parse_review_filter_date(end_date, end_of_day=True),
+    )
 
 
 @router.post(

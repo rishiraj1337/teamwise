@@ -45,9 +45,9 @@ const env = {
 
   DB_HOST: process.env.DB_HOST || '127.0.0.1',
   DB_PORT: parseInteger(process.env.DB_PORT, 3306),
-  DB_USER: process.env.DB_USER || 'review_user',
-  DB_PASSWORD: process.env.DB_PASSWORD || 'review_pass',
-  DB_NAME: process.env.DB_NAME || 'review_db',
+  DB_USER: process.env.DB_USER || 'root',
+  DB_PASSWORD: process.env.DB_PASSWORD || 'password',
+  DB_NAME: process.env.DB_NAME || 'timePayReview',
   DATABASE_URL: process.env.DATABASE_URL || '',
   DB_CONNECTION_LIMIT: parseInteger(process.env.DB_CONNECTION_LIMIT, 10),
   DB_CONNECT_TIMEOUT: parseInteger(process.env.DB_CONNECT_TIMEOUT, 10000),

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ChartSlice } from '../../api/reviews'
 
-const DEFAULT_COLORS = ['#6e55ce', '#4f8df5', '#4a9d6f', '#e8a43c', '#e07a9b', '#3aa6b5', '#8a899b', '#9b59b6']
+const DEFAULT_COLORS = ['#214c98', '#4972ff', '#168a70', '#fcda00', '#29b6c4', '#284fbc', '#64748b', '#01105f']
 
 export const SENTIMENT_PIE_COLORS: Record<string, string> = {
   Positive: '#2E9E6F',
@@ -12,7 +12,7 @@ export const SENTIMENT_PIE_COLORS: Record<string, string> = {
 export const TICKET_PIE_COLORS: Record<string, string> = {
   Open: '#E8943A',
   Resolved: '#2D9D6A',
-  Closed: '#6E55CE',
+  Closed: '#214c98',
 }
 
 function resolveSliceColor(label: string, index: number, labelColors?: Record<string, string>): string {
